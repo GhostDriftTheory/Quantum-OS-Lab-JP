@@ -10,7 +10,7 @@
   <meta property="og:title" content="Quantum Core: 量子世界への旅（量子OSラボ）" />
   <meta property="og:description" content="量子の「運命をまぜる＆1回だけ決める」を、量子OS付きで安全に体験できるインタラクティブ・ラボです。SESSION GRADE や量子ランダム鍵も生成できます。" />
   <meta property="og:url" content="https://ghostdrifttheory.github.io/Quantum-Core-Quantum-OS-Lab/" />
-  <!-- ★ここに 1792×1024 のOGバナー画像を置く（量子玉＋OS＋GRADE S） -->
+  <!-- OGバナー画像パス -->
   <meta property="og:image" content="https://ghostdrifttheory.github.io/Quantum-Core-Quantum-OS-Lab/quantum-os-og-1792x1024.png" />
   <meta property="og:image:alt" content="Quantum OS ラボ：量子の玉、OSシールド、SESSION GRADE S のバッジ" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -323,29 +323,29 @@
       );
     }
 
-    // 3. AI アシスタント（要するに短縮版）
+    // 3. AI アシスタント（物理用語ゼロ版）
     function AssistantMessage({ lastDecision, osMode, metrics }) {
-      let message = "システム待機中です。どれかのボタンを押してみてください。";
+      let message = "システム待機中です。右側のボタンを押して実験を始めてください。";
       let mood = "neutral"; 
 
       if (lastDecision) {
         if (lastDecision.decision === "ブロック") {
-          message = "⚠️ 危険と判断したので、量子OSがこの操作を止めました。";
+          message = "危ない操作だったので、量子OSがストップしました。別のボタンで試してみてください。";
           mood = "danger";
         } else if (lastDecision.op.includes("測定")) {
-          message = "観測しました。可能性が 1 つに決まりました。";
+          message = "観測を実行しました。いま表示されている 0 / 1 が、この実験の結果です。";
           mood = "neutral";
         } else if (metrics.entanglement > 0.8) {
-          message = "強い「量子のもつれ」ができています。かなりレアな状態です。";
+          message = "コイン2枚セット（もつれ）モードで、2つの結果が強く結びついた状態になっています。";
           mood = "happy";
         } else if (metrics.stability < 0.1 && metrics.gateCount > 0) {
-          message = "「重ね合わせ」状態です。コインが高速回転しているイメージです。";
+          message = "0 と 1 の確率がほぼ半々の『よく混ざったコイン』になっています。観測してみましょう。";
           mood = "happy";
         } else {
-          message = "操作を受け付けました。量子状態を更新しました。";
+          message = "操作を受け付けました。このあと「観測して運命を決める」で結果を見てみましょう。";
         }
       } else if (osMode) {
-        message = "🛡️ 量子OS が ON です。危なそうな操作は自動でブロックします。";
+        message = "量子OSが ON です。右のボタンを自由に押しても、危ない操作はOSが止めます。";
         mood = "happy";
       }
 
@@ -370,7 +370,7 @@
       );
     }
 
-    // 4. 初心者用ミッションカード（一行要約版）
+    // 4. 初心者用ミッションカード（ゴールと言い換えを明示）
     function MissionCard({ metrics, osMode }) {
       const clear =
         osMode &&
@@ -387,27 +387,28 @@
               </span>
             )}
           </div>
+
           <p className="text-[11px] text-slate-200 leading-relaxed">
-            要するに：
-            <span className="font-semibold"> OSモードのまま、古典安全度 80%以上・量子安全度 70%以上</span>
-            にしてから「観測して運命を決める」を 1 回押すだけです。
+            ゴールは、<span className="font-semibold">OS を ON のままにして、古典安全度 80%以上・量子安全度 70%以上のときに、
+            「観測して運命を決める」を 1 回押す</span>ことです。
           </p>
+
+          <p className="mt-1 text-[10px] text-slate-400">
+            これができたら、<span className="font-semibold text-emerald-300">「量子サイコロを OS 付きで安全ゾーンの中だけで回せた」</span>
+            ということになります。ここまでが「量子ラボ入門クリア」です。
+          </p>
+
           {!clear && (
-            <p className="mt-1 text-[10px] text-slate-400">
-              メーターをチラ見しながら、Quick Scenarios と Manual 操作を組み合わせて
-              条件に近づけてみましょう。
-            </p>
-          )}
-          {clear && (
-            <p className="mt-1 text-[10px] text-emerald-200 font-bold">
-              クリア済み：OSが「任せてよい安全ゾーン」だけを選び出せることを体験できました！観測しましょう！
+            <p className="mt-1 text-[10px] text-slate-500">
+              メーターをチラ見しながら、Quick Scenarios と手動ボタンを混ぜて遊んでいるうちに、
+              自然とこの条件に近づいていきます。細かい説明は読み飛ばしても大丈夫です。
             </p>
           )}
         </div>
       );
     }
 
-    // 5. 上級ミッションカード (OSを攻める・一行要約版)
+    // 5. 上級ミッションカード（OS を攻める意味を一言で）
     function AttackMissionCard({ metrics, osMode, measureSummary }) {
       const total = measureSummary.total;
       const bias = total > 0 ? Math.abs(measureSummary.ones / total - 0.5) : 0;
@@ -415,7 +416,7 @@
       // 条件（適度に攻めてる感じのライン）
       const clear =
         osMode &&
-        total >= 10 && // 12回だと少し長いので10回に調整
+        total >= 10 && // 10回くらいで十分
         metrics.safetyClassical >= 70 &&
         metrics.safetyQuantum >= 60 &&
         bias >= 0.4; // 0 or 1 にかなり偏っている
@@ -430,19 +431,24 @@
               </span>
             )}
           </div>
+
           <p className="text-[11px] text-slate-200 leading-relaxed">
-            要するに：
-            <span className="font-semibold"> OS を ON のままにして、安全メーターは高いまま</span>
-            にしつつ、測定結果を「ほぼ全部 0」か「ほぼ全部 1」に片寄らせてみてください。
-            それができたら CLEAR です。
+            ゴールは、<span className="font-semibold">OS を ON のままにして、安全メーターは高いまま</span>にしつつ、
+            測定結果を「ほぼ全部 0」か「ほぼ全部 1」に片寄らせることです。
           </p>
+
           <p className="mt-1 text-[10px] text-slate-400">
+            これは、<span className="font-semibold text-rose-300">「OS の設計ギリギリを攻めるケース」を自分で探すシミュレーション</span>です。
+            将来の量子OSでは、こういうケースを集めて改良材料にします。
+          </p>
+
+          <p className="mt-1 text-[10px] text-slate-500">
             現在：測定 {total} 回 / 1 の出現 {measureSummary.ones} 回（偏り {Math.round(bias * 100)}%）。
           </p>
+
           {clear && (
             <p className="mt-1 text-[10px] text-rose-200 font-bold">
-              OS の設計の「すき間」に入り込む状態を、自分の手で見つけました。
-              こういうケースが、そのまま次世代 OS の改良材料になります。
+              OS に守られつつ、そのすき間ギリギリを攻めるパターンを、自分の手で 1 つ見つけました。
             </p>
           )}
         </div>
@@ -476,7 +482,6 @@
         `${targetLabel}: P(0)≈${p0Disp}%, P(1)≈${p1Disp}%, ` +
         `measures=${totalMeas} (0=${zeros}, 1=${ones})`;
 
-      // ★追加: シェア用 1 行テキスト（SESSION GRADE 付き）
       const shareText = sessionGrade
         ? `量子OSデモで SESSION GRADE ${sessionGrade.label} (${sessionGrade.score}/100) が出ました。量子の「運命をまぜる＆守る」ラボはこちら → ${window.location.href}`
         : `量子OSデモで遊びました。量子の「運命をまぜる＆守る」ラボはこちら → ${window.location.href}`;
@@ -487,7 +492,6 @@
         }
       };
 
-      // ★追加: シェア用テキストコピー
       const handleCopyShare = () => {
         if (navigator.clipboard?.writeText) {
           navigator.clipboard.writeText(shareText);
@@ -506,7 +510,6 @@
               </p>
             </div>
 
-            {/* セッション評価バッジ */}
             {sessionGrade && (
               <div className={"shrink-0 px-3 py-2 rounded-xl border text-xs text-left " + sessionGrade.color}>
                 <div className="font-mono text-[10px] opacity-70 mb-1">
@@ -560,21 +563,15 @@
       const [history, setHistory] = useState([]);
       const [lastDecision, setLastDecision] = useState(null);
 
-      // 測定結果のざっくり統計
       const [measureSummary, setMeasureSummary] = useState({
         total: 0,
         zeros: 0,
         ones: 0,
       });
 
-      // ★追加: 量子ランダム鍵タスク用の状態
       const [quantumKeyBits, setQuantumKeyBits] = useState("");
       const [quantumKeyMessage, setQuantumKeyMessage] = useState("");
-
-      // ★追加: 量子鍵のビット長
       const [quantumKeyLength, setQuantumKeyLength] = useState(12);
-
-      // ★追加: イントロの詳細表示フラグ（スマホ圧縮用）
       const [showIntroDetail, setShowIntroDetail] = useState(false);
       
       const is1q = mode === "1q";
@@ -593,14 +590,12 @@
         const totalMeas = measureSummary.total;
         const blocked = history.filter(h => h.decision === "ブロック").length;
 
-        // シンプルなスコア計算
         let score = 0;
         score += classical;            // 0–100
         score += quantum;              // 0–100
-        score += Math.min(totalMeas * 3, 30);  // 観測回数 10回で +30
-        score += Math.min(blocked * 5, 25);    // ブロック経験も加点（OS体験）
+        score += Math.min(totalMeas * 3, 30);
+        score += Math.min(blocked * 5, 25);
 
-        // 255点満点 → 100点スケーリング
         const norm = Math.max(0, Math.min(100, Math.round((score / 255) * 100)));
 
         let label = "C";
@@ -634,7 +629,6 @@
           setGateCount(0); setNoiseCount(0);
         }
         setLastDecision(null);
-        // 測定統計もリセット
         setMeasureSummary({ total: 0, zeros: 0, ones: 0 });
       };
 
@@ -666,7 +660,6 @@
           outcome = res.outcome;
         }
 
-        // 統計更新
         setMeasureSummary(prev => ({
             total: prev.total + 1,
             zeros: prev.zeros + (outcome === 0 ? 1 : 0),
@@ -676,11 +669,9 @@
         setHistory(prev => [decision, ...prev].slice(0,5));
       };
 
-      // ★修正: 量子ランダム鍵 (ビット長可変)
       const runQuantumKeyTask = () => {
         const length = quantumKeyLength;
 
-        // OS OFF のときはまず注意だけ出す
         if (!osMode) {
           setQuantumKeyBits("");
           setQuantumKeyMessage(
@@ -692,7 +683,6 @@
         let bits = "";
 
         if (is1q) {
-          // 単一量子モード：state1q を使って連続測定
           let s = { ...state1q };
           for (let i = 0; i < length; i++) {
             const res = measure1q(s);
@@ -701,10 +691,9 @@
           }
           setState1q(s);
         } else {
-          // 2量子モード：Q1 を連続測定して bit 列を作る
           let s = { ...state2q };
           for (let i = 0; i < length; i++) {
-            const res = measure2q(s, 1); // Q1 を測定
+            const res = measure2q(s, 1); 
             s = res.next;
             bits += res.outcome === 0 ? "0" : "1";
           }
@@ -756,57 +745,72 @@
                     </h1>
                     <p className="text-xs text-slate-400 tracking-wider mb-3">QUANTUM COMPUTING INTERACTIVE LABORATORY</p>
                     
-                    {/* イントロ折りたたみ実装 */}
-                    <div className="bg-slate-900/80 border border-slate-700/50 rounded-lg p-3 text-[11px] text-slate-300 leading-relaxed max-w-2xl">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-cyan-400 font-bold mr-1">🔰 はじめての人は：</span>
-                        <button
-                          onClick={() => setShowIntroDetail(v => !v)}
-                          className="text-[10px] text-slate-400 hover:text-cyan-300 underline decoration-dotted"
-                        >
-                          {showIntroDetail ? "説明をとじる" : "詳しい説明をひらく"}
-                        </button>
+                    {/* イントロ: このページで何をするか */}
+                    <div className="bg-slate-900/80 border border-slate-700/60 rounded-lg p-3 text-[11px] text-slate-300 leading-relaxed max-w-2xl">
+                      <p className="text-slate-200 font-semibold mb-1">
+                        🔰 一言で言うと：
+                        <span className="font-semibold text-cyan-300"> 0 / 1 のコイン投げを使って「量子のゆらぎ」と「1回だけ決める」を体験するページ</span>
+                        です。
+                      </p>
+                      <p className="text-slate-300">
+                        量子力学の知識は不要で、<span className="font-semibold">コインの確率</span>と
+                        <span className="font-semibold">OS（危ない操作を止める安全装置）</span>だけを触ります。
+                      </p>
+
+                      <div className="mt-2">
+                        <p className="font-semibold text-slate-200">まずはこの 3 ステップだけ：</p>
+                        <ol className="list-decimal list-inside space-y-0.5 text-slate-200">
+                          <li>右上で <span className="font-semibold text-cyan-300">「単一量子（コイン1枚）」</span> を選ぶ</li>
+                          <li>右側の <span className="font-semibold text-cyan-300">「運命をまぜる」</span> を 1 回押す</li>
+                          <li>下の <span className="font-semibold text-rose-300">「観測して運命を決める」</span> を 1 回押す</li>
+                        </ol>
                       </div>
 
-                      <div className="mt-1 font-semibold text-white">
-                        ① 上で「単一量子」を選ぶ → ② 右の「運命をまぜる」を押す → ③ 下の「観測して運命を決める」を押す
-                      </div>
+                      <button
+                        onClick={() => setShowIntroDetail(v => !v)}
+                        className="mt-2 text-[10px] text-slate-400 hover:text-cyan-300 underline decoration-dotted"
+                      >
+                        {showIntroDetail ? "量子って何かの説明をとじる" : "量子って何かをくわしく見る"}
+                      </button>
 
                       {showIntroDetail && (
-                        <p className="mt-1 animate-fadeIn">
-                          この 3 ステップだけ試してみてください。
-                          量子の「ゆらぎ → 1 回だけ決める」が、そのまま目で見て体験できます。
-                        </p>
+                        <div className="mt-2 text-[10px] text-slate-400 space-y-1 animate-fadeIn">
+                          <p>・ここでは「量子」＝ とても小さい世界の <span className="font-semibold">0/1コイン</span> と思ってください。</p>
+                          <p>・コンピュータが「0 と 1 が出る確率」を計算し、その確率どおりにランダムで 0 / 1 を決めています。</p>
+                          <p>・その途中の操作と結果を、量子OSが見張って「危ない操作は止める」「履歴をレシートに残す」という実験になっています。</p>
+                        </div>
                       )}
                     </div>
                 </div>
               </div>
 
-              {/* Mode Switcher + STEPガイド */}
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-bounce" style={{ animationDuration: '3s' }}>
-                  <span className="text-[9px] font-mono text-emerald-200">STEP 1</span>
-                  <span className="text-[10px] text-emerald-100">
-                    まずは <span className="font-semibold">単一量子</span> を選んでみてください
-                  </span>
-                </div>
-
-                <div className="flex bg-slate-900 p-1 rounded-full border border-slate-700">
-                  <button 
-                    onClick={() => { setMode("1q"); reset(1); }}
-                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${is1q ? "bg-cyan-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
-                  >
-                    単一量子 (Soul)
-                  </button>
-                  <button 
-                    onClick={() => { setMode("2q"); reset(2); }}
-                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${!is1q ? "bg-purple-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
-                  >
-                    もつれ (Kizuna)
-                  </button>
-                </div>
+              {/* Mode Switcher */}
+              <div className="flex bg-slate-900 p-1 rounded-full border border-slate-700 shrink-0">
+                <button 
+                  onClick={() => { setMode("1q"); reset(1); }}
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${is1q ? "bg-cyan-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+                >
+                  単一量子（コイン1枚）
+                </button>
+                <button 
+                  onClick={() => { setMode("2q"); reset(2); }}
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${!is1q ? "bg-purple-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+                >
+                  もつれ（コイン2枚セット）
+                </button>
               </div>
             </header>
+
+            {/* 画面の見方（UI地図） */}
+            <div className="mb-4 text-[11px] text-slate-300 bg-slate-900/80 border border-slate-700/60 rounded-lg p-3">
+              <p className="font-semibold text-slate-100 mb-1">この画面で見るところは 4 つだけ：</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                <li>左：丸い玉 = 今の「コインの状態」</li>
+                <li>右上：ボタン群 = コインの確率を変える操作</li>
+                <li>右下：メーター = OS が見ている「安全度」</li>
+                <li>一番下：レシート = やった操作と結果のメモ（ADIC のタネ）</li>
+              </ul>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               

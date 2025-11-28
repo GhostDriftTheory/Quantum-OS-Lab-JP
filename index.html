@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quantum Core: 量子世界への旅</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- OG / Twitter カード設定 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Quantum Core: 量子世界への旅（量子OSラボ）" />
+  <meta property="og:description" content="量子の「運命をまぜる＆1回だけ決める」を、量子OS付きで安全に体験できるインタラクティブ・ラボです。SESSION GRADE や量子ランダム鍵も生成できます。" />
+  <meta property="og:url" content="https://ghostdrifttheory.github.io/Quantum-Core-Quantum-OS-Lab/" />
+  <!-- ★ここに 1792×1024 のOGバナー画像を置く（量子玉＋OS＋GRADE S） -->
+  <meta property="og:image" content="https://ghostdrifttheory.github.io/Quantum-Core-Quantum-OS-Lab/quantum-os-og-1792x1024.png" />
+  <meta property="og:image:alt" content="Quantum OS ラボ：量子の玉、OSシールド、SESSION GRADE S のバッジ" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Phosphor Icons (アイコン用) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Fonts (SFっぽいフォント) -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Zen Kaku Gothic New', sans-serif;
+      background-color: #020617; /* Slate 950 */
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-sci-fi {
+      font-family: 'Orbitron', sans-serif;
+    }
+    
+    /* 量子ビットの球体表現 */
+    .qubit-sphere {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      position: relative;
+      /* 宇宙っぽいグラデーション */
+      background: radial-gradient(circle at 30% 30%, rgba(56, 189, 248, 0.2), rgba(2, 6, 23, 1));
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.1), inset 0 0 20px rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      overflow: hidden;
+      transition: all 0.5s ease;
+    }
+    
+    .qubit-sphere::before {
+      content: "";
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 1px;
+      background: rgba(148, 163, 184, 0.3); /* 赤道 */
+    }
+    .qubit-sphere::after {
+      content: "";
+      position: absolute;
+      left: 50%; top: 0; bottom: 0;
+      width: 1px;
+      background: rgba(148, 163, 184, 0.3); /* 子午線 */
+    }
+
+    /* 状態を表す光る点 */
+    .qubit-soul {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff, #22d3ee);
+      box-shadow: 0 0 15px #22d3ee, 0 0 30px #22d3ee;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      transition: top 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 10;
+    }
+
+    /* 確率のゆらぎアニメーション */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.6; box-shadow: 0 0 10px currentColor; }
+      50% { opacity: 1; box-shadow: 0 0 20px currentColor; }
+    }
+    .animate-pulse-glow {
+      animation: pulse-glow 2s infinite;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+
+    /* グラスモーフィズムパネル */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ボタンのホバーエフェクト */
+    .btn-action {
+      transition: all 0.2s;
+    }
+    .btn-action:active {
+      transform: scale(0.95);
+    }
+    
+    /* スクロールバー */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.3);
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo, useEffect, useRef } = React;
+
+    // ==========================================
+    //  既存の計算ロジック (変更なし/コアエンジン)
+    // ==========================================
+    function clamp01(x) {
+      if (x < 0) return 0;
+      if (x > 1) return 1;
+      return x;
+    }
+    // ===== 1量子ビット状態 =====
+    function normalize1q(s) {
+      const { a, b } = s;
+      const n2 = a * a + b * b;
+      if (!n2 || !isFinite(n2)) return { a: 1, b: 0 };
+      const n = Math.sqrt(n2);
+      return { a: a / n, b: b / n };
+    }
+    function gateH1q(s) {
+      const r = 1 / Math.sqrt(2);
+      const a = r * (s.a + s.b);
+      const b = r * (s.a - s.b);
+      return normalize1q({ a, b });
+    }
+    function gateX1q(s) {
+      return normalize1q({ a: s.b, b: s.a });
+    }
+    function gateZ1q(s) {
+      return normalize1q({ a: s.a, b: -s.b });
+    }
+    function noise1q(s) {
+      const da = (Math.random() - 0.5) * 0.4;
+      const db = (Math.random() - 0.5) * 0.4;
+      return normalize1q({ a: s.a + da, b: s.b + db });
+    }
+    // ===== 2量子ビット状態 =====
+    function normalize2q(s) {
+      const { a00, a01, a10, a11 } = s;
+      const n2 = a00 * a00 + a01 * a01 + a10 * a10 + a11 * a11;
+      if (!n2 || !isFinite(n2)) return { a00: 1, a01: 0, a10: 0, a11: 0 };
+      const n = Math.sqrt(n2);
+      return { a00: a00 / n, a01: a01 / n, a10: a10 / n, a11: a11 / n };
+    }
+    function gateH2q_Q1(s) {
+      const r = 1 / Math.sqrt(2);
+      return normalize2q({
+        a00: r * (s.a00 + s.a10), a01: r * (s.a01 + s.a11),
+        a10: r * (s.a00 - s.a10), a11: r * (s.a01 - s.a11)
+      });
+    }
+    function gateH2q_Q2(s) {
+      const r = 1 / Math.sqrt(2);
+      return normalize2q({
+        a00: r * (s.a00 + s.a01), a01: r * (s.a00 - s.a01),
+        a10: r * (s.a10 + s.a11), a11: r * (s.a10 - s.a11)
+      });
+    }
+    function gateX2q_Q1(s) { return normalize2q({ a00: s.a10, a01: s.a11, a10: s.a00, a11: s.a01 }); }
+    function gateX2q_Q2(s) { return normalize2q({ a00: s.a01, a01: s.a00, a10: s.a11, a11: s.a10 }); }
+    function gateZ2q_Q1(s) { return normalize2q({ a00: s.a00, a01: s.a01, a10: -s.a10, a11: -s.a11 }); }
+    function gateZ2q_Q2(s) { return normalize2q({ a00: s.a00, a01: -s.a01, a10: s.a10, a11: -s.a11 }); }
+    function gateCNOT_Q1toQ2(s) { return normalize2q({ a00: s.a00, a01: s.a01, a10: s.a11, a11: s.a10 }); }
+    function noise2q(s) {
+      const r = () => (Math.random() - 0.5) * 0.3;
+      return normalize2q({ a00: s.a00 + r(), a01: s.a01 + r(), a10: s.a10 + r(), a11: s.a11 + r() });
+    }
+    function measure1q(state) {
+      const p0 = clamp01(state.a * state.a);
+      const r = Math.random() < p0 ? 0 : 1;
+      return { next: r === 0 ? { a: 1, b: 0 } : { a: 0, b: 1 }, outcome: r };
+    }
+    function measure2q(state, qubitIndex) {
+      const { a00, a01, a10, a11 } = state;
+      const p00=a00*a00, p01=a01*a01, p10=a10*a10, p11=a11*a11;
+      if (qubitIndex === 1) {
+        const p0 = p00 + p01;
+        const r = Math.random() < (p0 || 0) ? 0 : 1;
+        if (r === 0) return { next: normalize2q({ a00, a01, a10: 0, a11: 0 }), outcome: 0 };
+        else return { next: normalize2q({ a00: 0, a01, a10, a11 }), outcome: 1 };
+      } else {
+        const p0 = p00 + p10;
+        const r = Math.random() < (p0 || 0) ? 0 : 1;
+        if (r === 0) return { next: normalize2q({ a00, a01: 0, a10, a11: 0 }), outcome: 0 };
+        else return { next: normalize2q({ a00: 0, a01, a10, a11 }), outcome: 1 };
+      }
+    }
+    // メトリクス計算
+    function computeMetrics1q(state, gateCount, noiseCount) {
+      const p0 = clamp01(state.a * state.a);
+      const p1 = clamp01(state.b * state.b);
+      const stability = Math.abs(p0 - p1);
+      const riskQuantum = clamp01(noiseCount / 8);
+      return {
+        mode: "1q", p0, p1, p0_Q1: p0, p1_Q1: p1, p0_Q2: null, p1_Q2: null,
+        entanglement: 0, stability, riskQuantum,
+        safetyClassical: Math.round(stability * 100),
+        safetyQuantum: Math.round((1 - riskQuantum) * 100),
+        gateCount, noiseCount
+      };
+    }
+    function computeMetrics2q(state, gateCount, noiseCount) {
+      const { a00, a01, a10, a11 } = state;
+      const p00=a00*a00, p01=a01*a01, p10=a10*a10, p11=a11*a11;
+      const p0_Q1 = clamp01(p00 + p01), p1_Q1 = clamp01(p10 + p11);
+      const p0_Q2 = clamp01(p00 + p10), p1_Q2 = clamp01(p01 + p11);
+      const stability = Math.max(Math.abs(p0_Q1 - p1_Q1), Math.abs(p0_Q2 - p1_Q2));
+      const ent = clamp01(4 * Math.abs(a00 * a11 - a01 * a10));
+      const riskQuantum = clamp01((ent + noiseCount / 8) / 1.5);
+      return {
+        mode: "2q", p0: p0_Q1, p1: p1_Q1, p0_Q1, p1_Q1, p0_Q2, p1_Q2,
+        entanglement: ent, stability, riskQuantum,
+        safetyClassical: Math.round(stability * 100),
+        safetyQuantum: Math.round((1 - riskQuantum) * 100),
+        gateCount, noiseCount
+      };
+    }
+    function shouldBlockOperation(metrics, osMode, opKey) {
+      if (!osMode) return false;
+      if (opKey.startsWith("measure") || opKey.startsWith("reset") || opKey.startsWith("scenario")) return false;
+      const g = metrics.gateCount, nq = metrics.noiseCount;
+      if (metrics.mode === "1q") {
+        if (metrics.stability < 0.2 && g >= 8) return true;
+        if (metrics.riskQuantum > 0.7 && (g >= 6 || nq >= 5)) return true;
+      } else {
+        if (metrics.riskQuantum > 0.6 && (g >= 6 || nq >= 4)) return true;
+        if (metrics.stability < 0.2 && metrics.entanglement > 0.5 && g >= 4) return true;
+      }
+      return false;
+    }
+
+    // ==========================================
+    //  新しい UI コンポーネント
+    // ==========================================
+
+    // 1. 量子ビットビジュアライザー（球体）
+    function QubitSphere({ p0, p1, label }) {
+      const z = clamp01(p0) - clamp01(p1);
+      const midX = 50; 
+      const midY = 50 - (z * 40);
+
+      return (
+        <div className="flex flex-col items-center group">
+          <div className="relative mb-4">
+            <div className="qubit-sphere">
+              <div 
+                className="qubit-soul"
+                style={{ left: `${midX}%`, top: `${midY}%` }}
+              />
+              <div className="absolute top-2 left-0 right-0 text-center text-[10px] text-slate-500 font-mono">|0&gt; (表)</div>
+              <div className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-slate-500 font-mono">|1&gt; (裏)</div>
+            </div>
+          </div>
+          <div className="font-sci-fi text-cyan-400 tracking-wider text-sm">{label || "QUBIT"}</div>
+        </div>
+      );
+    }
+
+    // 2. 確率バー
+    function ProbBar({ p0, p1, label }) {
+      const pct0 = Math.round(clamp01(p0) * 100);
+      const pct1 = Math.round(clamp01(p1) * 100);
+
+      return (
+        <div className="w-full bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+          <div className="flex justify-between items-end mb-2">
+            <span className="text-xs text-slate-400 font-mono">{label || "PROBABILITY"}</span>
+            <span className="text-xs text-cyan-200">
+              {pct0 === 50 && pct1 === 50 ? "SUPERPOSITION (重ね合わせ)" : pct0 > pct1 ? "0 有力" : "1 有力"}
+            </span>
+          </div>
+          <div className="relative h-6 w-full flex rounded-sm overflow-hidden bg-slate-800">
+            <div 
+              style={{ width: `${pct0}%` }} 
+              className="h-full bg-gradient-to-r from-blue-600 to-cyan-500 relative transition-all duration-300"
+            >
+              {pct0 > 20 && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-900">0: {pct0}%</span>}
+            </div>
+            <div 
+              style={{ width: `${pct1}%` }} 
+              className="h-full bg-gradient-to-r from-purple-600 to-pink-500 relative transition-all duration-300"
+            >
+              {pct1 > 20 && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white">1: {pct1}%</span>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 3. AI アシスタント（要するに短縮版）
+    function AssistantMessage({ lastDecision, osMode, metrics }) {
+      let message = "システム待機中です。どれかのボタンを押してみてください。";
+      let mood = "neutral"; 
+
+      if (lastDecision) {
+        if (lastDecision.decision === "ブロック") {
+          message = "⚠️ 危険と判断したので、量子OSがこの操作を止めました。";
+          mood = "danger";
+        } else if (lastDecision.op.includes("測定")) {
+          message = "観測しました。可能性が 1 つに決まりました。";
+          mood = "neutral";
+        } else if (metrics.entanglement > 0.8) {
+          message = "強い「量子のもつれ」ができています。かなりレアな状態です。";
+          mood = "happy";
+        } else if (metrics.stability < 0.1 && metrics.gateCount > 0) {
+          message = "「重ね合わせ」状態です。コインが高速回転しているイメージです。";
+          mood = "happy";
+        } else {
+          message = "操作を受け付けました。量子状態を更新しました。";
+        }
+      } else if (osMode) {
+        message = "🛡️ 量子OS が ON です。危なそうな操作は自動でブロックします。";
+        mood = "happy";
+      }
+
+      const colorClass = mood === "danger" ? "text-rose-300 border-rose-500/50 bg-rose-950/30" : 
+                         mood === "happy" ? "text-cyan-200 border-cyan-500/50 bg-cyan-950/30" : 
+                         "text-slate-300 border-slate-600 bg-slate-900/50";
+
+      return (
+        <div className={`mt-4 p-4 rounded-xl border ${colorClass} transition-all duration-500`}>
+          <div className="flex items-start gap-3">
+            <div className="text-2xl mt-1">
+              {mood === "danger" ? <i className="ph-fill ph-warning-octagon text-rose-500"></i> : 
+               mood === "happy" ? <i className="ph-fill ph-sparkle text-cyan-400"></i> : 
+               <i className="ph-fill ph-robot text-slate-400"></i>}
+            </div>
+            <div>
+              <div className="text-[10px] opacity-70 mb-1 font-mono uppercase tracking-widest">Quantum OS Navigator</div>
+              <p className="text-sm leading-relaxed font-medium">{message}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 4. 初心者用ミッションカード（一行要約版）
+    function MissionCard({ metrics, osMode }) {
+      const clear =
+        osMode &&
+        metrics.safetyClassical >= 80 &&
+        metrics.safetyQuantum >= 70;
+
+      return (
+        <div className={`mb-4 p-3 rounded-xl bg-slate-900/80 border transition-colors duration-500 ${clear ? "border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "border-emerald-600/60"}`}>
+          <div className="text-[11px] font-semibold text-emerald-200 mb-1 flex items-center gap-2">
+            <span>🎯 今日のミッション（初級）</span>
+            {clear && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 text-[10px] animate-pulse">
+                CLEAR!
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-200 leading-relaxed">
+            要するに：
+            <span className="font-semibold"> OSモードのまま、古典安全度 80%以上・量子安全度 70%以上</span>
+            にしてから「観測して運命を決める」を 1 回押すだけです。
+          </p>
+          {!clear && (
+            <p className="mt-1 text-[10px] text-slate-400">
+              メーターをチラ見しながら、Quick Scenarios と Manual 操作を組み合わせて
+              条件に近づけてみましょう。
+            </p>
+          )}
+          {clear && (
+            <p className="mt-1 text-[10px] text-emerald-200 font-bold">
+              クリア済み：OSが「任せてよい安全ゾーン」だけを選び出せることを体験できました！観測しましょう！
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // 5. 上級ミッションカード (OSを攻める・一行要約版)
+    function AttackMissionCard({ metrics, osMode, measureSummary }) {
+      const total = measureSummary.total;
+      const bias = total > 0 ? Math.abs(measureSummary.ones / total - 0.5) : 0;
+
+      // 条件（適度に攻めてる感じのライン）
+      const clear =
+        osMode &&
+        total >= 10 && // 12回だと少し長いので10回に調整
+        metrics.safetyClassical >= 70 &&
+        metrics.safetyQuantum >= 60 &&
+        bias >= 0.4; // 0 or 1 にかなり偏っている
+
+      return (
+        <div className={`mb-4 p-3 rounded-xl bg-slate-900/80 border transition-colors duration-500 ${clear ? "border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.3)]" : "border-rose-600/60"}`}>
+          <div className="text-[11px] font-semibold text-rose-200 mb-1 flex items-center gap-2">
+            <span>🧪 上級ミッション：OS を攻めてみる</span>
+            {clear && (
+              <span className="px-2 py-0.5 rounded-full bg-rose-400 text-slate-950 text-[10px] animate-pulse">
+                CLEAR!
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-slate-200 leading-relaxed">
+            要するに：
+            <span className="font-semibold"> OS を ON のままにして、安全メーターは高いまま</span>
+            にしつつ、測定結果を「ほぼ全部 0」か「ほぼ全部 1」に片寄らせてみてください。
+            それができたら CLEAR です。
+          </p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            現在：測定 {total} 回 / 1 の出現 {measureSummary.ones} 回（偏り {Math.round(bias * 100)}%）。
+          </p>
+          {clear && (
+            <p className="mt-1 text-[10px] text-rose-200 font-bold">
+              OS の設計の「すき間」に入り込む状態を、自分の手で見つけました。
+              こういうケースが、そのまま次世代 OS の改良材料になります。
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // 6. 量子OSレシート (ADIC風 + Session Grade + Share)
+    function ReceiptPanel({ osMode, metrics, history, measureSummary, sessionGrade }) {
+      const totalOps = history.length;
+      const blocked = history.filter(h => h.decision === "ブロック").length;
+      
+      const totalMeas = measureSummary.total;
+      const zeros = measureSummary.zeros;
+      const ones  = measureSummary.ones;
+
+      let targetLabel = "QUBIT-01";
+      let p0Disp = 0;
+      let p1Disp = 0;
+
+      if (metrics.mode === "1q") {
+        p0Disp = Math.round(metrics.p0 * 100);
+        p1Disp = Math.round(metrics.p1 * 100);
+      } else {
+        p0Disp = Math.round(metrics.p0_Q1 * 100);
+        p1Disp = Math.round(metrics.p1_Q1 * 100);
+      }
+
+      const summary =
+        `OS=${osMode ? "ON" : "OFF"}, ` +
+        `ops=${totalOps} (blocked=${blocked}), ` +
+        `${targetLabel}: P(0)≈${p0Disp}%, P(1)≈${p1Disp}%, ` +
+        `measures=${totalMeas} (0=${zeros}, 1=${ones})`;
+
+      // ★追加: シェア用 1 行テキスト（SESSION GRADE 付き）
+      const shareText = sessionGrade
+        ? `量子OSデモで SESSION GRADE ${sessionGrade.label} (${sessionGrade.score}/100) が出ました。量子の「運命をまぜる＆守る」ラボはこちら → ${window.location.href}`
+        : `量子OSデモで遊びました。量子の「運命をまぜる＆守る」ラボはこちら → ${window.location.href}`;
+
+      const handleCopy = () => {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(summary);
+        }
+      };
+
+      // ★追加: シェア用テキストコピー
+      const handleCopyShare = () => {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(shareText);
+        }
+      };
+
+      return (
+        <div className="mt-8 glass-panel p-3 rounded-xl border border-slate-700/80 bg-slate-900/80">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex-1">
+              <div className="text-[10px] text-slate-500 font-mono mb-1">
+                SESSION RECEIPT (量子OSレシート)
+              </div>
+              <p className="text-[11px] text-slate-200 break-all font-mono">
+                {summary}
+              </p>
+            </div>
+
+            {/* セッション評価バッジ */}
+            {sessionGrade && (
+              <div className={"shrink-0 px-3 py-2 rounded-xl border text-xs text-left " + sessionGrade.color}>
+                <div className="font-mono text-[10px] opacity-70 mb-1">
+                  SESSION GRADE
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-bold">{sessionGrade.label}</span>
+                  <span className="text-[11px]">{sessionGrade.score} / 100</span>
+                </div>
+                <p className="mt-1 text-[10px] leading-snug">
+                  {sessionGrade.message}
+                </p>
+              </div>
+            )}
+
+            <div className="shrink-0 flex flex-col gap-2 md:self-end">
+              <button
+                onClick={handleCopy}
+                className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-semibold"
+              >
+                レシートをコピー
+              </button>
+              <button
+                onClick={handleCopyShare}
+                className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-[11px] font-semibold"
+              >
+                シェア用テキスト
+              </button>
+            </div>
+          </div>
+          <p className="mt-1 text-[10px] text-slate-400">
+            この 1 行をセッションごとに並べて保存しておけば、
+            「OS が何回止め、どんな確率状態で何回観測したか」を第三者があとから検証できます。
+            ADIC 的な「証拠レイヤー」の縮約版になっています。
+          </p>
+        </div>
+      );
+    }
+
+    // ==========================================
+    //  メイン アプリケーション
+    // ==========================================
+    function QuantumApp() {
+      // State
+      const [mode, setMode] = useState("1q");
+      const [osMode, setOsMode] = useState(true);
+      const [state1q, setState1q] = useState({ a: 1, b: 0 });
+      const [state2q, setState2q] = useState({ a00: 1, a01: 0, a10: 0, a11: 0 });
+      const [gateCount, setGateCount] = useState(0);
+      const [noiseCount, setNoiseCount] = useState(0);
+      const [history, setHistory] = useState([]);
+      const [lastDecision, setLastDecision] = useState(null);
+
+      // 測定結果のざっくり統計
+      const [measureSummary, setMeasureSummary] = useState({
+        total: 0,
+        zeros: 0,
+        ones: 0,
+      });
+
+      // ★追加: 量子ランダム鍵タスク用の状態
+      const [quantumKeyBits, setQuantumKeyBits] = useState("");
+      const [quantumKeyMessage, setQuantumKeyMessage] = useState("");
+
+      // ★追加: 量子鍵のビット長
+      const [quantumKeyLength, setQuantumKeyLength] = useState(12);
+
+      // ★追加: イントロの詳細表示フラグ（スマホ圧縮用）
+      const [showIntroDetail, setShowIntroDetail] = useState(false);
+      
+      const is1q = mode === "1q";
+
+      // Metrics
+      const metrics = useMemo(() => {
+        return is1q 
+          ? computeMetrics1q(state1q, gateCount, noiseCount)
+          : computeMetrics2q(state2q, gateCount, noiseCount);
+      }, [mode, state1q, state2q, gateCount, noiseCount]);
+
+      // セッション評価ロジック
+      const sessionGrade = useMemo(() => {
+        const classical = metrics.safetyClassical;
+        const quantum = metrics.safetyQuantum;
+        const totalMeas = measureSummary.total;
+        const blocked = history.filter(h => h.decision === "ブロック").length;
+
+        // シンプルなスコア計算
+        let score = 0;
+        score += classical;            // 0–100
+        score += quantum;              // 0–100
+        score += Math.min(totalMeas * 3, 30);  // 観測回数 10回で +30
+        score += Math.min(blocked * 5, 25);    // ブロック経験も加点（OS体験）
+
+        // 255点満点 → 100点スケーリング
+        const norm = Math.max(0, Math.min(100, Math.round((score / 255) * 100)));
+
+        let label = "C";
+        let color = "text-amber-300 bg-amber-900/40 border-amber-500/60";
+        let message = "Good. 色々なボタンを試してみましょう。";
+
+        if (norm >= 90) {
+          label = "S";
+          color = "text-emerald-300 bg-emerald-900/40 border-emerald-500/70";
+          message = "Perfect! 量子OSの勘所を完全に掴んでいます。";
+        } else if (norm >= 75) {
+          label = "A";
+          color = "text-cyan-300 bg-cyan-900/40 border-cyan-500/70";
+          message = "Excellent. 安全と観測のバランスが良いです。";
+        } else if (norm >= 60) {
+          label = "B";
+          color = "text-sky-300 bg-sky-900/40 border-sky-500/70";
+          message = "Nice. ブロック条件の限界を探ってみましょう。";
+        }
+
+        return { score: norm, label, color, message };
+      }, [metrics, measureSummary, history]);
+
+      // Actions
+      const reset = (type) => {
+        if(type === 1) {
+          setState1q({ a: 1, b: 0 });
+          setGateCount(0); setNoiseCount(0);
+        } else {
+          setState2q({ a00: 1, a01: 0, a10: 0, a11: 0 });
+          setGateCount(0); setNoiseCount(0);
+        }
+        setLastDecision(null);
+        // 測定統計もリセット
+        setMeasureSummary({ total: 0, zeros: 0, ones: 0 });
+      };
+
+      const runGate = (opKey, label, g1, g2, isNoise) => {
+        const block = shouldBlockOperation(metrics, osMode, opKey);
+        const decision = { op: label, decision: block ? "ブロック" : "許可", id: Date.now() };
+        setLastDecision(decision);
+        if(!block) {
+            if(is1q && g1) setState1q(prev => g1(prev));
+            if(!is1q && g2) setState2q(prev => g2(prev));
+            setGateCount(c => c + 1);
+            if(isNoise) setNoiseCount(c => c + 1);
+        }
+        setHistory(prev => [decision, ...prev].slice(0,5));
+      };
+
+      const runMeasure = (idx) => {
+        const decision = { op: is1q ? "測定" : `測定(Q${idx})`, decision: "許可", id: Date.now() };
+        setLastDecision(decision);
+        
+        let outcome = 0;
+        if(is1q) {
+          const res = measure1q(state1q);
+          setState1q(res.next);
+          outcome = res.outcome;
+        } else {
+          const res = measure2q(state2q, idx);
+          setState2q(res.next);
+          outcome = res.outcome;
+        }
+
+        // 統計更新
+        setMeasureSummary(prev => ({
+            total: prev.total + 1,
+            zeros: prev.zeros + (outcome === 0 ? 1 : 0),
+            ones:  prev.ones  + (outcome === 1 ? 1 : 0),
+        }));
+
+        setHistory(prev => [decision, ...prev].slice(0,5));
+      };
+
+      // ★修正: 量子ランダム鍵 (ビット長可変)
+      const runQuantumKeyTask = () => {
+        const length = quantumKeyLength;
+
+        // OS OFF のときはまず注意だけ出す
+        if (!osMode) {
+          setQuantumKeyBits("");
+          setQuantumKeyMessage(
+            "量子OSを ON にした状態で鍵を作ってみましょう。（右上のスイッチで ON にできます）"
+          );
+          return;
+        }
+
+        let bits = "";
+
+        if (is1q) {
+          // 単一量子モード：state1q を使って連続測定
+          let s = { ...state1q };
+          for (let i = 0; i < length; i++) {
+            const res = measure1q(s);
+            s = res.next;
+            bits += res.outcome.toString();
+          }
+          setState1q(s);
+        } else {
+          // 2量子モード：Q1 を連続測定して bit 列を作る
+          let s = { ...state2q };
+          for (let i = 0; i < length; i++) {
+            const res = measure2q(s, 1); // Q1 を測定
+            s = res.next;
+            bits += res.outcome === 0 ? "0" : "1";
+          }
+          setState2q(s);
+        }
+
+        setQuantumKeyBits(bits);
+        setQuantumKeyMessage(
+          `この ${length} ビット列が今回の量子ランダム鍵です。毎回ボタンを押すたびに違う鍵が出ます。`
+        );
+      };
+
+      const runScenario = (type) => {
+         reset(is1q ? 1 : 2);
+         setTimeout(() => {
+             if (type === "superposition") {
+                 runGate("H1q", "重ね合わせを作成", gateH1q, null, false);
+             } else if (type === "entangle") {
+                 setState2q(prev => {
+                     const s1 = gateH2q_Q1(prev);
+                     return gateCNOT_Q1toQ2(s1);
+                 });
+                 setGateCount(2);
+                 setLastDecision({ op: "運命の赤い糸 (Entanglement)", decision: "許可", id: Date.now() });
+             } else if (type === "noise") {
+                 let s = is1q ? state1q : state2q;
+                 for(let i=0; i<5; i++) s = is1q ? noise1q(s) : noise2q(s);
+                 if(is1q) setState1q(s); else setState2q(s);
+                 setNoiseCount(5);
+                 setLastDecision({ op: "環境ノイズの嵐", decision: "警告", id: Date.now() });
+             }
+         }, 100);
+      };
+
+      return (
+        <div className="min-h-screen bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-black text-slate-200 p-4 md:p-8 flex justify-center">
+          
+          <div className="max-w-6xl w-full">
+            
+            {/* Header */}
+            <header className="flex flex-col md:flex-row justify-between items-start mb-8 border-b border-slate-800 pb-6 gap-6">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="w-12 h-12 bg-cyan-500 rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)] shrink-0">
+                    <i className="ph ph-atom text-3xl text-black"></i>
+                </div>
+                <div>
+                    <h1 className="text-3xl font-bold font-sci-fi tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+                        QUANTUM CORE
+                    </h1>
+                    <p className="text-xs text-slate-400 tracking-wider mb-3">QUANTUM COMPUTING INTERACTIVE LABORATORY</p>
+                    
+                    {/* イントロ折りたたみ実装 */}
+                    <div className="bg-slate-900/80 border border-slate-700/50 rounded-lg p-3 text-[11px] text-slate-300 leading-relaxed max-w-2xl">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-cyan-400 font-bold mr-1">🔰 はじめての人は：</span>
+                        <button
+                          onClick={() => setShowIntroDetail(v => !v)}
+                          className="text-[10px] text-slate-400 hover:text-cyan-300 underline decoration-dotted"
+                        >
+                          {showIntroDetail ? "説明をとじる" : "詳しい説明をひらく"}
+                        </button>
+                      </div>
+
+                      <div className="mt-1 font-semibold text-white">
+                        ① 上で「単一量子」を選ぶ → ② 右の「運命をまぜる」を押す → ③ 下の「観測して運命を決める」を押す
+                      </div>
+
+                      {showIntroDetail && (
+                        <p className="mt-1 animate-fadeIn">
+                          この 3 ステップだけ試してみてください。
+                          量子の「ゆらぎ → 1 回だけ決める」が、そのまま目で見て体験できます。
+                        </p>
+                      )}
+                    </div>
+                </div>
+              </div>
+
+              {/* Mode Switcher + STEPガイド */}
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-bounce" style={{ animationDuration: '3s' }}>
+                  <span className="text-[9px] font-mono text-emerald-200">STEP 1</span>
+                  <span className="text-[10px] text-emerald-100">
+                    まずは <span className="font-semibold">単一量子</span> を選んでみてください
+                  </span>
+                </div>
+
+                <div className="flex bg-slate-900 p-1 rounded-full border border-slate-700">
+                  <button 
+                    onClick={() => { setMode("1q"); reset(1); }}
+                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${is1q ? "bg-cyan-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+                  >
+                    単一量子 (Soul)
+                  </button>
+                  <button 
+                    onClick={() => { setMode("2q"); reset(2); }}
+                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${!is1q ? "bg-purple-600 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+                  >
+                    もつれ (Kizuna)
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              
+              {/* Left Column: Visualizer */}
+              <div className="lg:col-span-5 flex flex-col gap-6">
+                <div className="glass-panel p-8 rounded-2xl flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                    
+                    {/* ビジュアル表示エリア */}
+                    {is1q ? (
+                        <QubitSphere p0={metrics.p0} p1={metrics.p1} label="QUBIT-01" />
+                    ) : (
+                        <div className="flex flex-col gap-8 w-full items-center">
+                            <div className="flex justify-around w-full">
+                                <QubitSphere p0={metrics.p0_Q1} p1={metrics.p1_Q1} label="QUBIT-01 (Alice)" />
+                                <div className="w-px bg-slate-700 h-40 mx-4 relative">
+                                    {metrics.entanglement > 0.1 && (
+                                        <div 
+                                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-pink-500 blur-md transition-all duration-1000"
+                                            style={{ opacity: metrics.entanglement, boxShadow: `0 0 ${metrics.entanglement * 30}px #ec4899` }}
+                                        />
+                                    )}
+                                </div>
+                                <QubitSphere p0={metrics.p0_Q2} p1={metrics.p1_Q2} label="QUBIT-02 (Bob)" />
+                            </div>
+                            <div className="text-center">
+                                <div className="text-xs text-pink-300 font-mono mb-1">ENTANGLEMENT LEVEL (絆の強さ)</div>
+                                <div className="text-2xl font-sci-fi text-pink-400">{Math.round(metrics.entanglement * 100)}%</div>
+                                <p className="text-[10px] text-slate-500 mt-1">100%になると、片方の運命が決まれば、もう片方も瞬時に決まります。</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 確率バー */}
+                    <div className="w-full mt-8 flex flex-col gap-3">
+                        {is1q ? (
+                            <ProbBar p0={metrics.p0} p1={metrics.p1} />
+                        ) : (
+                            <>
+                                <ProbBar p0={metrics.p0_Q1} p1={metrics.p1_Q1} label="PROBABILITY (Q1)" />
+                                <ProbBar p0={metrics.p0_Q2} p1={metrics.p1_Q2} label="PROBABILITY (Q2)" />
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* AI メッセージ */}
+                <AssistantMessage lastDecision={lastDecision} osMode={osMode} metrics={metrics} />
+              </div>
+
+              {/* Right Column: Control Panel */}
+              <div className="lg:col-span-7 flex flex-col gap-6">
+                
+                {/* 1. OS Status Panel */}
+                <div className="glass-panel p-4 rounded-xl flex items-center justify-between gap-4">
+                  <div className="flex-1">
+                    <h2 className="text-sm text-cyan-400 font-bold mb-1 flex items-center gap-2">
+                      <i className="ph-fill ph-shield-check"></i> QUANTUM OS STATUS
+                    </h2>
+                    <div className="flex gap-4 text-xs text-slate-400 mb-2">
+                      <span>
+                        Stability:{" "}
+                        <span className={metrics.safetyClassical > 70 ? "text-emerald-400" : "text-amber-400"}>
+                          {metrics.safetyClassical}%
+                        </span>
+                      </span>
+                      <span>
+                        Noise Risk:{" "}
+                        <span className={metrics.riskQuantum > 0.5 ? "text-rose-400" : "text-emerald-400"}>
+                          {Math.round(metrics.riskQuantum * 100)}%
+                        </span>
+                      </span>
+                    </div>
+
+                    {/* OSの役割説明 (徹底ミニマル化) */}
+                    <p className="text-[11px] text-slate-300 leading-snug bg-slate-800/50 p-2 rounded">
+                      要するに：OS が「計算を守る」か「守らない」かのスイッチです。
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">{osMode ? "安全装置: ON" : "安全装置: OFF (危険)"}</span>
+                        <button 
+                            onClick={() => setOsMode(!osMode)}
+                            className={`w-12 h-6 rounded-full p-1 transition-colors ${osMode ? "bg-cyan-600" : "bg-slate-700"}`}
+                        >
+                            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${osMode ? "translate-x-6" : ""}`} />
+                        </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 初級ミッションカード (短縮版) */}
+                <MissionCard metrics={metrics} osMode={osMode} />
+
+                {/* 上級ミッションカード (短縮版) */}
+                <AttackMissionCard metrics={metrics} osMode={osMode} measureSummary={measureSummary} />
+
+                {/* ★追加: 量子ランダム鍵タスク（機能強化版）★ */}
+                <div className="glass-panel p-4 rounded-xl mb-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="text-[11px] text-slate-300">
+                      <span className="font-semibold text-cyan-300 mr-1">🔐 量子ランダム鍵タスク：</span>
+                      要するに、<span className="font-semibold">OS を ON にしてビット長を選び、「鍵を作る」を押すだけ</span>です。
+                    </div>
+                    <button
+                      onClick={runQuantumKeyTask}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.5)]"
+                    >
+                      鍵を作る
+                    </button>
+                  </div>
+
+                  {/* ★追加: ビット長選択ボタン */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[10px] text-slate-400">ビット長:</span>
+                    {[8, 12, 32].map((len) => (
+                      <button
+                        key={len}
+                        onClick={() => setQuantumKeyLength(len)}
+                        className={
+                          "px-2 py-1 rounded text-[10px] border transition-colors " +
+                          (quantumKeyLength === len
+                            ? "bg-cyan-600 text-slate-950 border-cyan-400 font-bold shadow-[0_0_8px_rgba(6,182,212,0.4)]"
+                            : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700")
+                        }
+                      >
+                        {len}
+                      </button>
+                    ))}
+                  </div>
+
+                  {quantumKeyBits && (
+                    <div className="text-[11px] font-mono bg-slate-900/80 border border-slate-700/80 rounded-lg px-3 py-2 text-cyan-100 break-all animate-fadeIn">
+                      {quantumKeyBits}
+                    </div>
+                  )}
+
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    {quantumKeyMessage ||
+                      "出てきた 0/1 の列が、今回の量子ランダム鍵です。気に入ったものをメモしておいてください。"}
+                  </p>
+                </div>
+
+                {/* 2. Command Center (Operations) */}
+                <div className="glass-panel p-6 rounded-xl flex-1">
+                    <h3 className="text-slate-300 font-bold mb-4 flex items-center gap-2">
+                        <i className="ph-fill ph-faders"></i> COMMAND CENTER
+                    </h3>
+
+                    <div className="mb-6">
+                        <div className="text-[10px] text-slate-500 font-mono mb-2 uppercase">Quick Scenarios (体験モード)</div>
+                        {/* STEP 1 説明 (短縮版) */}
+                        <p className="text-[11px] text-slate-300 mb-3 bg-slate-800/30 p-2 rounded border-l-2 border-cyan-500">
+                            <span className="font-bold text-cyan-400">STEP 1:</span>
+                            <span className="font-semibold">
+                               とりあえずどれかのボタンを押して、
+                            </span>
+                            左の丸い「量子の玉」と下のバーの動きだけ見てみてください。
+                            <span className="font-semibold text-white">
+                               一番上の「運命をまぜる」が基本のスタートボタンです。
+                            </span>
+                        </p>
+                        <p className="text-[10px] text-slate-500 mt-1 mb-2 px-2">
+                          文字を読むのが面倒なら、まずはボタンだけいじって大丈夫です。
+                        </p>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {is1q ? (
+                                <>
+                                    <button onClick={() => runScenario("superposition")} className="btn-action bg-slate-800 hover:bg-cyan-900/50 border border-cyan-800/50 text-cyan-100 p-3 rounded-lg text-left">
+                                        <div className="font-bold text-sm mb-1"><i className="ph ph-shuffle"></i> 運命をまぜる</div>
+                                        <div className="text-[10px] opacity-70">50%の確率で0か1が出る「重ね合わせ」を作ります。</div>
+                                    </button>
+                                    <button onClick={() => runScenario("noise")} className="btn-action bg-slate-800 hover:bg-rose-900/50 border border-rose-800/50 text-rose-100 p-3 rounded-lg text-left">
+                                        <div className="font-bold text-sm mb-1"><i className="ph ph-wind"></i> ノイズの嵐</div>
+                                        <div className="text-[10px] opacity-70">外乱を与えます。計算がめちゃくちゃになります。</div>
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => runScenario("entangle")} className="btn-action bg-slate-800 hover:bg-pink-900/50 border border-pink-800/50 text-pink-100 p-3 rounded-lg text-left md:col-span-2">
+                                        <div className="font-bold text-sm mb-1"><i className="ph ph-infinity"></i> 運命の赤い糸 (量子もつれ)</div>
+                                        <div className="text-[10px] opacity-70">2つのコインを「見えない糸」で繋ぎます。アインシュタインが「不気味」と言った現象です。</div>
+                                    </button>
+                                    <button onClick={() => runScenario("noise")} className="btn-action bg-slate-800 hover:bg-rose-900/50 border border-rose-800/50 text-rose-100 p-3 rounded-lg text-left">
+                                        <div className="font-bold text-sm mb-1"><i className="ph ph-wind"></i> ノイズの嵐</div>
+                                        <div className="text-[10px] opacity-70">絆を壊します。</div>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="border-t border-slate-700/50 pt-4">
+                        <div className="text-[10px] text-slate-500 font-mono mb-2 uppercase">Manual Override (手動操作)</div>
+                        
+                        <div className="flex flex-wrap gap-2 mb-4">
+                           <button onClick={() => reset(is1q ? 1 : 2)} className="btn-action px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white">
+                                <i className="ph-bold ph-arrow-counter-clockwise"></i> リセット
+                           </button>
+
+                           {is1q ? (
+                               <>
+                                   <button onClick={() => runGate("H1q", "Mix (Hゲート)", gateH1q, null, false)} className="btn-action px-4 py-2 bg-cyan-700 hover:bg-cyan-600 rounded text-xs text-white font-bold border-b-2 border-cyan-900">
+                                       混ぜる (H)
+                                   </button>
+                                   <button onClick={() => runGate("X1q", "Flip (Xゲート)", gateX1q, null, false)} className="btn-action px-4 py-2 bg-blue-700 hover:bg-blue-600 rounded text-xs text-white font-bold border-b-2 border-blue-900">
+                                       反転 (X)
+                                   </button>
+                                   <button onClick={() => runGate("noise", "Noise", noise1q, null, true)} className="btn-action px-4 py-2 bg-slate-700 hover:bg-rose-900 rounded text-xs text-rose-300 border border-rose-900/30">
+                                       ゆらす (Noise)
+                                   </button>
+                               </>
+                           ) : (
+                               <>
+                                    <button onClick={() => runGate("H2q_Q1", "Mix Q1", null, gateH2q_Q1, false)} className="btn-action px-3 py-2 bg-cyan-700 hover:bg-cyan-600 rounded text-xs text-white font-bold">
+                                       Q1 混ぜる
+                                   </button>
+                                   <button onClick={() => runGate("CNOT", "Connect (CNOT)", null, gateCNOT_Q1toQ2, false)} className="btn-action px-3 py-2 bg-pink-700 hover:bg-pink-600 rounded text-xs text-white font-bold border-b-2 border-pink-900">
+                                       つなぐ (CNOT)
+                                   </button>
+                               </>
+                           )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                             <div className="flex gap-2 w-full">
+                                 {is1q ? (
+                                     <button onClick={() => runMeasure(1)} className="btn-action w-full py-3 bg-rose-600 hover:bg-rose-500 rounded text-sm text-white font-bold shadow-[0_0_15px_rgba(225,29,72,0.4)] flex justify-center items-center gap-2">
+                                         <i className="ph-fill ph-eye"></i> 観測して運命を決める
+                                     </button>
+                                 ) : (
+                                     <>
+                                        <button onClick={() => runMeasure(1)} className="btn-action flex-1 py-3 bg-rose-600 hover:bg-rose-500 rounded text-xs text-white font-bold">
+                                         <i className="ph-fill ph-eye"></i> Q1 観測
+                                        </button>
+                                        <button onClick={() => runMeasure(2)} className="btn-action flex-1 py-3 bg-rose-600 hover:bg-rose-500 rounded text-xs text-white font-bold">
+                                         <i className="ph-fill ph-eye"></i> Q2 観測
+                                        </button>
+                                     </>
+                                 )}
+                             </div>
+                             
+                             <p className="text-[10px] text-slate-400 leading-relaxed text-center px-2">
+                                このボタンを押すと、いま画面に出ている確率どおりに
+                                <span className="font-semibold text-rose-300">「0 か 1 が一度だけ」</span> 決まります。
+                                下の履歴に、さっきの観測結果がたまっていきます。
+                             </p>
+                        </div>
+                    </div>
+                </div>
+                
+                {/* 3. History Log */}
+                <div className="glass-panel p-4 rounded-xl max-h-40 overflow-y-auto custom-scrollbar">
+                    <div className="text-[10px] text-slate-500 font-mono mb-2 sticky top-0 bg-slate-900/80 backdrop-blur pb-1">SYSTEM LOG</div>
+                    
+                    {/* ログの証拠性説明 (徹底ミニマル化) */}
+                    <p className="text-[11px] text-slate-300 mb-2 bg-slate-800/30 p-2 rounded">
+                        要するに：OS が「許可した操作」と「ブロックした操作」の履歴です。
+                    </p>
+
+                    <div className="flex flex-col gap-2">
+                        {history.length === 0 && <div className="text-xs text-slate-600 italic">No operations logged.</div>}
+                        {history.map((h, i) => (
+                            <div key={h.id} className="flex justify-between items-center text-xs border-b border-slate-800 pb-1 last:border-0 animate-fadeIn" style={{animationDuration: '0.5s', animationIterationCount: 1}}>
+                                <span className="text-slate-300 font-mono">
+                                    <span className="text-cyan-500 opacity-50 mr-2">[{new Date(h.id).toLocaleTimeString().split(' ')[0]}]</span>
+                                    {h.op}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] ${h.decision === "ブロック" ? "bg-rose-900 text-rose-200" : "bg-emerald-900 text-emerald-200"}`}>
+                                    {h.decision}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 量子OSレシートパネル (Session Grade付き) */}
+            <ReceiptPanel
+              osMode={osMode}
+              metrics={metrics}
+              history={history}
+              measureSummary={measureSummary}
+              sessionGrade={sessionGrade}
+            />
+
+            <div className="mt-12 text-center border-t border-slate-800 pt-8">
+                <p className="text-slate-500 text-sm mb-2">
+                    "God does not play dice with the universe." - Albert Einstein
+                </p>
+
+                {/* 実用線へのチラ見せ (徹底ミニマル化) */}
+                <p className="text-slate-400 text-xs mb-1">
+                    これは、将来の「量子暗号OS」の試作機です。
+                </p>
+
+                <p className="text-slate-400 text-xs">
+                    でも、私たちは今サイコロを振っています。これが量子コンピューターの始まりです。
+                </p>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<QuantumApp />);
+  </script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Quantum World Key Factory: Final Polish</title>
+  <title>Quantum World Key Factory: Ultimate Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   
   <!-- Tailwind CSS -->
@@ -89,6 +89,14 @@
     }
     .verify-success {
       animation: pulse-green 2s infinite;
+    }
+    
+    /* Details tag styles */
+    details > summary {
+      list-style: none;
+    }
+    details > summary::-webkit-details-marker {
+      display: none;
     }
     
     ::-webkit-scrollbar { width: 4px; }
@@ -378,8 +386,12 @@
                 <h2 className="text-sm font-bold text-white font-tech leading-tight">
                   鍵で決まった「箱」のルールを見抜け
                 </h2>
+                
+                {/* 目的ガイド */}
                 <div className="text-[9px] text-slate-400 mt-1 leading-snug">
-                  入力と出力のルール f: {"{0,1}→{0,1}"} を特定せよ。<br/>
+                  <span className="font-semibold text-slate-100">
+                    ここでは、回線が f(0)=f(1) 型か f(0)≠f(1) 型かをできるだけ少ない質問回数で見分けます。
+                  </span><br/>
                   <span className="text-slate-200">A. f(0)=f(1)</span> [同じ] か、
                   <span className="text-slate-200"> B. f(0)≠f(1)</span> [違う] か。
                 </div>
@@ -466,7 +478,10 @@
               <div className="text-[9px] font-mono text-cyan-300 mb-0.5">💡 量子の魔法</div>
               <p className="text-[9px] text-slate-300 leading-tight">
                 「2回が1回になっただけ」に見えますが、もしこれが1億桁なら？<br/>
-                普通は1億回かかる検査を、量子なら<span className="font-semibold text-white">たった1回</span>で正解を見抜きます。
+                普通は1億回かかるところを、量子なら<span className="font-semibold text-white">たった1回</span>で正解を見抜きます。<br/>
+                <span className="font-semibold text-slate-100">
+                  このレベルは、「なぜ量子コンピュータが“回線チェック”に向いているか」のミニ版体験です。
+                </span>
               </p>
             </div>
           </div>
@@ -519,7 +534,7 @@
           <div className="flex justify-between items-center mb-2">
             <div>
               <div className="text-[9px] text-cyan-300 font-mono mb-0.5">
-                LEVEL 4: Quantum OS LEDGER
+                LEVEL 4: QUANTUM OS LEDGER
               </div>
               <div className="text-[9px] text-slate-300 leading-snug">
                 真実は台帳のみ。ログから証明せよ。
@@ -667,6 +682,22 @@
         try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(t);
       };
 
+      // ★ Auto Prepare
+      const handleAutoPrepare = () => {
+        if (mode === "1q") {
+          // Hadamard
+          setS1({ a: 0.7071, b: 0.7071 });
+          setLastDecision({ decision: "許可", msg: "量子コインを50:50で準備しました", id: Date.now() });
+          appendLedger({ step: "OP", level: 1, op: "準備(自動)", payload: { desc: "50:50" } });
+        } else {
+          // Entangle (Bell State)
+          setS2({ a00: 0.707, a01: 0, a10: 0, a11: 0.707 });
+          setLastDecision({ decision: "許可", msg: "ペアの量子コインをリンクさせました", id: Date.now() });
+          appendLedger({ step: "OP", level: 2, op: "準備(自動)", payload: { desc: "リンク完了" } });
+        }
+      };
+
+      // Advanced Ops
       const handleBias = () => {
         if (osMode && metrics.stability > 0.8) { setLastDecision({ decision: "ブロック", msg: "偏りすぎ！警告", id: Date.now() }); setHistory(p => [...p, "偏り"]); return; }
         if(mode === "1q") setS1({ a: 0.95, b: 0.31 }); else setS2({ a00:0.9, a01:0.1, a10:0.1, a11:0.4 });
@@ -717,17 +748,44 @@
             <div className="flex justify-between items-end border-b border-slate-800 pb-2 mb-2">
               <div>
                 <h1 className="text-lg font-bold text-white tracking-widest font-tech flex gap-2 items-center"><i className="ph-fill ph-fingerprint text-cyan-500"></i> KEY FACTORY</h1>
-                <p className="text-[8px] text-cyan-700 font-bold tracking-widest">SECURE PROTOCOL v9.0</p>
+                <p className="text-[8px] text-cyan-700 font-bold tracking-widest">MISSION: 12ビットの世界鍵を作る</p>
               </div>
               <div className="text-right">
-                <div className="text-[8px] text-slate-500">PROGRESS</div>
-                <div className="text-base font-bold text-cyan-400 font-mono leading-none">{keyBits.length}<span className="text-[10px] text-slate-600">/{TARGET_LENGTH}</span></div>
+                <div className="text-[8px] text-slate-500">暗号鍵の進行状況</div>
+                <div className="text-base font-bold text-cyan-400 font-mono leading-none">
+                  {keyBits.length}<span className="text-[10px] text-slate-600"> / {TARGET_LENGTH} ビット</span>
+                </div>
+                <div className="text-[8px] text-slate-500 mt-0.5">※12ビットでゴール</div>
               </div>
             </div>
             
-            <p className="text-[10px] text-slate-400 mb-3 leading-tight">
-              Lv1・2で鍵を作り、Lv3で世界をチェック。<br/>全てはLv4のOS台帳に記録されます。
-            </p>
+            {/* Goal Card */}
+            <div className="mb-3 text-[10px] text-slate-300 space-y-1.5">
+              <div className="font-mono text-slate-400">このページのゴール</div>
+              <div className="bg-slate-900/60 border border-slate-800 rounded p-2 space-y-1">
+                <div className="flex items-start gap-2">
+                  <span className="text-cyan-400 text-xs"><i className="ph-bold ph-number-circle-one"></i></span>
+                  <div>
+                    <div className="font-semibold text-slate-100">Lv1・2: ランダムな12ビットを作る</div>
+                    <div className="text-[9px] text-slate-400">コインを回して「0/1」を12回決めます。</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-violet-400 text-xs"><i className="ph-bold ph-number-circle-two"></i></span>
+                  <div>
+                    <div className="font-semibold text-slate-100">Lv3: 回線テスト</div>
+                    <div className="text-[9px] text-slate-400">2回かかる質問を、量子なら1回で見抜ける体験。</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-400 text-xs"><i className="ph-bold ph-number-circle-three"></i></span>
+                  <div>
+                    <div className="font-semibold text-slate-100">Lv4: OS監査</div>
+                    <div className="text-[9px] text-slate-400">画面が消えても、台帳から鍵を復元できるか確認。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {/* Mode Tabs */}
             <div className="flex gap-1 mb-3 bg-slate-900/50 p-1 rounded border border-slate-800">
@@ -739,9 +797,14 @@
               </button>
             </div>
 
-            {/* Visualizer */}
+            {/* Visualizer Panel */}
             <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-3 mb-3 flex flex-col items-center relative overflow-hidden min-h-[140px] justify-center">
-               <div className="flex gap-6 z-10 scale-90">
+               {/* Guide Text inside Panel */}
+               <div className="absolute top-2 left-3 right-3 text-[9px] text-slate-400 text-center z-10">
+                 <span className="font-semibold text-slate-200">Lv{mode==="1q"?1:2} ガイド:</span> 「準備」→「ストップ」で1ビット生成
+               </div>
+
+               <div className="flex gap-6 z-10 scale-90 mt-4">
                  {mode === "1q" ? <QubitVisual p0={metrics.p0} p1={metrics.p1} label="QUBIT" /> : 
                    <><QubitVisual p0={metrics.p0} p1={metrics.p1} label="A (兄)" /><QubitVisual p0={metrics.p0_2} p1={metrics.p1_2} label="B (弟)" /></>}
                </div>
@@ -750,31 +813,38 @@
 
             {/* Controls */}
             <div className="grid grid-cols-2 gap-2 mb-2">
+              {/* Left: Auto Prepare + Details */}
               <div className="col-span-1 space-y-1.5">
-                <div className="text-[9px] font-bold text-cyan-500 border-b border-cyan-900/30 pb-0.5">① 確率を作る</div>
-                <button onClick={handleHadamard} className="btn-cyber w-full bg-slate-800 p-1.5 text-left rounded flex items-center gap-2">
-                  <div className="text-cyan-400 text-lg"><i className="ph-bold ph-arrows-clockwise"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">混ぜる</div><div className="text-[8px] text-slate-500">50:50</div></div>
+                <div className="text-[9px] font-bold text-cyan-500 border-b border-cyan-900/30 pb-0.5">① 準備 (これだけでOK)</div>
+                <button
+                  onClick={handleAutoPrepare}
+                  className="w-full bg-slate-800 hover:bg-slate-700 p-1.5 text-left rounded flex items-center gap-2 border border-cyan-600/40"
+                >
+                  <div className="text-cyan-400 text-lg"><i className="ph-bold ph-coin"></i></div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-50">{mode==="1q" ? "コインを準備" : "ペアを準備"}</div>
+                    <div className="text-[8px] text-slate-400">{mode==="1q" ? "50:50にセット" : "50:50+リンク"}</div>
+                  </div>
                 </button>
-                <button onClick={handleBias} className="btn-cyber w-full bg-slate-800 p-1.5 text-left rounded flex items-center gap-2">
-                  <div className="text-amber-400 text-lg"><i className="ph-bold ph-magnet"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">偏らせる</div><div className="text-[8px] text-slate-500">0有利</div></div>
-                </button>
-                {mode==="2q" && <button onClick={handleEntangle} className="btn-cyber w-full bg-slate-800 p-1.5 text-left rounded flex items-center gap-2 border-purple-500/30">
-                  <div className="text-purple-400 text-lg"><i className="ph-bold ph-infinity"></i></div>
-                  <div><div className="text-[10px] font-bold text-purple-200">リンク</div><div className="text-[8px] text-slate-500">運命共有</div></div>
-                </button>}
-                <button onClick={handleNoise} className="btn-cyber w-full bg-slate-800 p-1.5 text-left rounded flex items-center gap-2">
-                  <div className="text-slate-400 text-lg"><i className="ph-bold ph-hand-waving"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">揺らす</div><div className="text-[8px] text-slate-500">ランダム</div></div>
-                </button>
+
+                <details className="bg-slate-900/80 rounded border border-slate-800">
+                  <summary className="text-[8px] px-2 py-1 cursor-pointer text-slate-500 hover:text-slate-300">▼ くわしく (実験用)</summary>
+                  <div className="p-1.5 space-y-1">
+                    <button onClick={handleHadamard} className="w-full bg-slate-800 p-1.5 text-left rounded flex gap-2"><div className="text-cyan-400"><i className="ph-bold ph-arrows-clockwise"></i></div><div className="text-[9px] text-white">混ぜる</div></button>
+                    <button onClick={handleBias} className="w-full bg-slate-800 p-1.5 text-left rounded flex gap-2"><div className="text-amber-400"><i className="ph-bold ph-magnet"></i></div><div className="text-[9px] text-white">偏らせる (悪)</div></button>
+                    {mode==="2q" && <button onClick={handleEntangle} className="w-full bg-slate-800 p-1.5 text-left rounded flex gap-2"><div className="text-purple-400"><i className="ph-bold ph-infinity"></i></div><div className="text-[9px] text-white">リンク</div></button>}
+                    <button onClick={handleNoise} className="w-full bg-slate-800 p-1.5 text-left rounded flex gap-2"><div className="text-slate-400"><i className="ph-bold ph-hand-waving"></i></div><div className="text-[9px] text-white">揺らす</div></button>
+                  </div>
+                </details>
               </div>
+
+              {/* Right: Stop */}
               <div className="col-span-1 space-y-1.5 flex flex-col">
-                <div className="text-[9px] font-bold text-emerald-500 border-b border-emerald-900/30 pb-0.5">② 決める</div>
+                <div className="text-[9px] font-bold text-emerald-500 border-b border-emerald-900/30 pb-0.5">② 決定 (数字確定)</div>
                 <button onClick={handleMeasure} className="flex-1 btn-cyber bg-emerald-900/20 border-emerald-500/30 flex flex-col items-center justify-center p-2 rounded-xl active:bg-emerald-800/40">
                   <i className="ph-bold ph-hand-palm text-3xl text-emerald-500 mb-1"></i>
                   <span className="text-sm font-bold text-white">ストップ！</span>
-                  <span className="text-[9px] text-emerald-400">数字を確定する</span>
+                  <span className="text-[9px] text-emerald-400">1ビット確定</span>
                 </button>
               </div>
             </div>

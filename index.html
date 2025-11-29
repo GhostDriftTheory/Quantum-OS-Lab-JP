@@ -1,593 +1,886 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>Quantum World Key Factory: Refined Tone</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance ADIC - ブラックボックス計算の検証技術</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel -->
+  
+  <!-- Babel (JSX Transpiler) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Phosphor Icons -->
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <!-- Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    body {
-      font-family: 'Zen Kaku Gothic New', sans-serif;
-      background-color: #020617;
-      color: #e2e8f0;
-      overflow-x: hidden;
-      background-image: 
-        radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.1), transparent 40%),
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 40px 40px, 40px 40px;
-    }
-    .font-tech {
-      font-family: 'Chakra Petch', sans-serif;
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(71, 85, 105, 0.6); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.8); }
+    
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; }
+    
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(51, 65, 85, 0.5);
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(5px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn {
-      animation: fadeIn 0.3s ease-out forwards;
-    }
-
-    .btn-cyber {
-      position: relative;
+    /* Accordion Animation */
+    .accordion-content {
+      transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+      max-height: 0;
+      opacity: 0;
       overflow: hidden;
-      transition: all 0.2s;
-      border: 1px solid rgba(148, 163, 184, 0.2);
     }
-    .btn-cyber:active {
-      transform: scale(0.97);
+    .accordion-content.open {
+      max-height: 2000px; /* Enough height */
+      opacity: 1;
     }
-    
-    /* 量子ビット表現 */
-    .qubit-core {
-      width: 90px; height: 90px;
-      border-radius: 50%;
-      position: relative;
-      background: radial-gradient(circle at 30% 30%, rgba(6, 182, 212, 0.1), #020617);
-      box-shadow: 0 0 25px rgba(6, 182, 212, 0.1), inset 0 0 15px rgba(6, 182, 212, 0.1);
-      border: 1px solid rgba(6, 182, 212, 0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .qubit-orbit {
-      position: absolute;
-      width: 100%; height: 100%;
-      border-radius: 50%;
-      border: 1px dashed rgba(148, 163, 184, 0.2);
-      animation: spin 10s linear infinite;
-    }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-
-    .probability-node {
-      width: 12px; height: 12px;
-      background: #22d3ee;
-      border-radius: 50%;
-      box-shadow: 0 0 10px #22d3ee;
-      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 20;
-    }
-    
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
   </style>
 </head>
-<body class="antialiased text-slate-300 text-sm">
+<body class="bg-slate-950 text-slate-200 antialiased selection:bg-indigo-500/30">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
-    // --- 計算ロジック (変更なし) ---
-    function clamp01(x) { if (x < 0) return 0; if (x > 1) return 1; return x; }
-    function normalize1q(s) { const n = Math.sqrt(s.a*s.a + s.b*s.b)||1; return { a:s.a/n, b:s.b/n }; }
-    function normalize2q(s) { const n = Math.sqrt(s.a00*s.a00+s.a01*s.a01+s.a10*s.a10+s.a11*s.a11)||1; return {a00:s.a00/n,a01:s.a01/n,a10:s.a10/n,a11:s.a11/n}; }
-    function noise1q(s) { return normalize1q({ a:s.a+(Math.random()-0.5)*0.8, b:s.b+(Math.random()-0.5)*0.8 }); }
-    function noise2q(s) { const r=()=>(Math.random()-0.5)*0.6; return normalize2q({a00:s.a00+r(), a01:s.a01+r(), a10:s.a10+r(), a11:s.a11+r()}); }
-    
-    function measure1q(state) {
-      const p0 = clamp01(state.a * state.a);
-      const r = Math.random() < p0 ? 0 : 1;
-      return { outcome: r };
-    }
-    function measure2q(state, idx) {
-      const {a00,a01,a10,a11} = state;
-      const p0 = idx===1 ? (a00*a00 + a01*a01) : (a00*a00 + a10*a10);
-      const r = Math.random() < (p0||0) ? 0 : 1;
-      return { outcome: r };
-    }
+    // ------------------------------------------
+    // Icons
+    // ------------------------------------------
+    const IconBase = ({ children, ...props }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>{children}</svg>
+    );
+    const ShieldCheck = (props) => <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></IconBase>;
+    const Activity = (props) => <IconBase {...props}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></IconBase>;
+    const Database = (props) => <IconBase {...props}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></IconBase>;
+    const CheckCircle2 = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
+    const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
+    const Lock = (props) => <IconBase {...props}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></IconBase>;
+    const Cpu = (props) => <IconBase {...props}><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></IconBase>;
+    const RefreshCw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconBase>;
+    const FileSpreadsheet = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h2"/><path d="M8 17h2"/><path d="M14 13h2"/><path d="M14 17h2"/></IconBase>;
+    const EyeOff = (props) => <IconBase {...props}><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.09"/><line x1="2" x2="22" y1="2" y2="22"/></IconBase>;
+    const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
+    const Briefcase = (props) => <IconBase {...props}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconBase>;
+    const Send = (props) => <IconBase {...props}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconBase>;
+    const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
+    const Scale = (props) => <IconBase {...props}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></IconBase>;
+    const Fingerprint = (props) => <IconBase {...props}><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 12.5a3 3 0 0 1 3-3"/><path d="M15 12a3 3 0 0 1-2 3"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M9 5.5a3 3 0 0 1 1.2 2.25"/><path d="M11.75 1.5a5.1 5.1 0 0 1 2.8 3.8"/><path d="M15.4 15c.3 1.5.8 2.5 1.1 4.5"/><path d="M19.1 12c.4 1.8.8 2.8 1.1 5"/></IconBase>;
+    const Microscope = (props) => <IconBase {...props}><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></IconBase>;
+    const Layers = (props) => <IconBase {...props}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></IconBase>;
+    const FileCode = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 13 2 2-2 2"/></IconBase>;
+    const CheckSquare = (props) => <IconBase {...props}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
+    const Sigma = (props) => <IconBase {...props}><path d="M18 7c-3 0-6-1-9-1a1 1 0 0 0 0 2c3 0 6 1 9 1v12c-3 0-6 1-9 1a1 1 0 0 0 0 2c3 0 6-1 9-1"/><path d="M9 8l9 8H9"/></IconBase>;
+    const ExternalLink = (props) => <IconBase {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></IconBase>;
+    const MonitorCheck = (props) => <IconBase {...props}><path d="m9 10 2 2 4-4"/><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M12 17v4"/><path d="M8 21h8"/></IconBase>;
+    const ChefHat = (props) => <IconBase {...props}><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 9.08 0A5.11 5.11 0 0 1 18.59 6 4 4 0 0 1 20 13.87V21H6Z"/><line x1="6" x2="20" y1="17" y2="17"/></IconBase>;
+    const ScrollText = (props) => <IconBase {...props}><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/></IconBase>;
+    const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+    const FileArchive = (props) => <IconBase {...props}><path d="M4 22V4c0-.5.2-1 .6-1.4C5 2.2 5.5 2 6 2h12c.5 0 1 .2 1.4.6.4.4.6.9.6 1.4v18c0 .5-.2 1-.6 1.4-.4.4-.9.6-1.4.6H6c-.5 0-1-.2-1.4-.6-.4-.4-.6-.9-.6-1.4Z"/><path d="M10 2v20"/><path d="M14 2v20"/><path d="M4 10h16"/><path d="M4 14h16"/></IconBase>;
+    const Calculator = (props) => <IconBase {...props}><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></IconBase>;
+    const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
+    const PlayCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></IconBase>;
+    const Settings2 = (props) => <IconBase {...props}><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></IconBase>;
 
-    function computeMetrics(mode, s, g, n) {
-      if (mode === "1q") {
-        const p0 = clamp01(s.a*s.a), p1 = clamp01(s.b*s.b);
-        const stability = Math.abs(p0 - p1); 
-        const risk = clamp01(n / 10); 
-        return { p0, p1, stability, risk };
-      } else {
-        const p0_1 = clamp01(s.a00*s.a00 + s.a01*s.a01), p1_1 = 1-p0_1;
-        const p0_2 = clamp01(s.a00*s.a00 + s.a10*s.a10), p1_2 = 1-p0_2;
-        const stability = Math.max(Math.abs(p0_1-p1_1), Math.abs(p0_2-p1_2));
-        const ent = clamp01(4 * Math.abs(s.a00*s.a11 - s.a01*s.a10));
-        const risk = clamp01((ent + n/10)/1.5);
-        return { p0: p0_1, p1: p1_1, p0_2, p1_2, stability, risk, ent };
-      }
-    }
 
-    // --- Level 3 Logic ---
-    function createRandomRule() {
-      const patterns = [
-        { f0: 0, f1: 0, kind: "constant", label: "定数 (0)" },
-        { f0: 1, f1: 1, kind: "constant", label: "定数 (1)" },
-        { f0: 0, f1: 1, kind: "balanced", label: "変化 (同じ)" },
-        { f0: 1, f1: 0, kind: "balanced", label: "変化 (逆)" }
-      ];
-      return patterns[Math.floor(Math.random() * patterns.length)];
-    }
-
-    function runQuantumScan(rule) {
-      const f0 = rule.f0;
-      const f1 = rule.f1;
-      const H = 1 / Math.sqrt(2);
-      let a00=0.0, a01=1.0, a10=0.0, a11=0.0;
-      let b00=H*(a00+a10), b10=H*(a00-a10), b01=H*(a01+a11), b11=H*(a01-a11);
-      let c00=H*(b00+b01), c01=H*(b00-b01), c10=H*(b10+b11), c11=H*(b10-b11);
-      let d00=c00, d01=c01, d10=c10, d11=c11;
-      if(f0===1){const t=d00;d00=d01;d01=t;}
-      if(f1===1){const t=d10;d10=d11;d11=t;}
-      let e00=H*(d00+d10), e10=H*(d00-d10), e01=H*(d01+d11), e11=H*(d01-d11);
-      const p0=e00*e00+e01*e01;
-      const p1=e10*e10+e11*e11;
-      const kindGuess = p0 > 0.5 ? "constant" : "balanced";
-      return { kindGuess, p0, p1 };
+    // ------------------------------------------
+    // Math & Logic Utilities
+    // ------------------------------------------
+    function outwardRational(x, scale = 1e8) {
+      if (!Number.isFinite(x)) return { p: 0, q: 1, value: 0 };
+      let p;
+      if (x >= 0) p = Math.ceil(x * scale);
+      else p = Math.floor(x * scale);
+      const q = scale;
+      const value = p / q;
+      const absError = Math.abs(value - x);
+      return { p, q, value, absError };
     }
 
-    // --- UI Components ---
+    function zForAlpha(alpha) {
+      if (alpha >= 0.999) return 3.090;
+      if (alpha >= 0.995) return 2.576;
+      if (alpha >= 0.99) return 2.326;
+      if (alpha >= 0.975) return 1.960;
+      if (alpha >= 0.95) return 1.645;
+      if (alpha >= 0.9) return 1.282;
+      return 1.0;
+    }
 
-    function IntroModal({ onClose }) {
+    // ------------------------------------------
+    // Components
+    // ------------------------------------------
+
+    // --- Accordion Item Component ---
+    const AccordionSection = ({ title, children, isMain = false, icon: Icon, defaultOpen = false }) => {
+      const [isOpen, setIsOpen] = useState(defaultOpen);
+      
       return (
-        <div className="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
-          <div className="max-w-md w-full bg-slate-900 border border-cyan-500/30 p-6 shadow-2xl relative overflow-hidden rounded-xl">
-            <h1 className="text-xl font-bold text-white mb-2 font-tech tracking-widest text-center">
-              <span className="text-cyan-500">Q.W.K.</span> PROTOCOL
-            </h1>
-            <div className="text-[10px] font-mono text-slate-500 mb-4 border-b border-slate-800 pb-2 text-center">
-              MISSION: 世界最強の鍵を作れ
+        <div className={`mb-3 rounded-xl border transition-all duration-300 overflow-hidden
+          ${isMain 
+            ? 'border-indigo-500/50 bg-indigo-900/10 shadow-lg shadow-indigo-900/20' 
+            : 'border-slate-800 bg-slate-900/40'
+          }`}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`w-full flex items-center justify-between p-3 sm:p-4 text-left transition-colors active:bg-slate-800
+              ${isMain ? 'hover:bg-indigo-900/20' : 'hover:bg-slate-800/50'}`}
+          >
+            <div className="flex items-center gap-3">
+               <div className={`p-1.5 rounded-lg ${isMain ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-800 text-slate-400'}`}>
+                 {Icon ? <Icon size={20} /> : <Activity size={20} />}
+               </div>
+               <div>
+                 <h3 className={`text-xs sm:text-sm font-bold ${isMain ? 'text-indigo-100' : 'text-slate-200'}`}>
+                   {title}
+                 </h3>
+                 {isMain && <span className="text-[10px] text-indigo-300 font-medium block mt-0.5">※ここが本丸（Core Demo）</span>}
+               </div>
             </div>
-            
-            <div className="space-y-3 text-xs leading-relaxed text-slate-300">
-              <p>
-                <span className="text-cyan-300 font-bold">量子世界鍵工場</span>は、<br/>
-                <span className="font-semibold text-white">世界中の「ひみつの部屋」を開ける鍵</span>を作るラボです。<br/>
-                このデモでは、その中でもバレにくい「世界鍵」を作るプロセスを体験できます。
-              </p>
-              
-              <div className="bg-slate-800/50 p-2.5 rounded border border-cyan-500/20">
-                <strong className="text-cyan-400 block mb-0.5"><i className="ph-bold ph-number-circle-one"></i> 量子コイン操作</strong>
-                <div className="text-[10px] text-slate-400">
-                  「0」と「1」が<span className="font-semibold text-slate-200">同時に入ったコイン</span>を作って回します。<br/>
-                  普通の乱数よりも、ずっと「読まれにくい」コインです。
-                </div>
-              </div>
-              <div className="bg-purple-900/20 p-2.5 rounded border border-purple-500/30">
-                <strong className="text-purple-400 block mb-0.5"><i className="ph-bold ph-number-circle-two"></i> 量子もつれ (Lv.2)</strong>
-                <div className="text-[10px] text-slate-400">
-                  2つのコインを<span className="font-semibold text-purple-300">ペアで同じ動きをするコイン</span>にします。<br/>
-                  片方だけ見ても、もう片方の結果が同時に決まるイメージです。
-                </div>
-              </div>
-
-              <div className="bg-violet-950/30 p-2.5 rounded border border-violet-500/30">
-                <strong className="text-violet-400 block mb-0.5">Lv.3: 量子高速化の体験</strong>
-                <div className="text-[10px] text-slate-400">
-                  普通は2回かかるチェックを、1回で終わらせる<span className="text-white font-bold">「超高速スキャン」</span>を体験できます。
-                </div>
-              </div>
-
-              <div className="bg-amber-950/20 p-2 rounded border-l-2 border-amber-500 text-[10px] mt-1">
-                ⚠️ 注意：不自然に「0」ばかり出すと、セキュリティAIにブロックされます。
-              </div>
+            <div className={`p-1 rounded-full ${isMain ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-500'}`}>
+              <ChevronDown size={16} className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
-            
-            <button 
-              onClick={onClose}
-              className="mt-5 w-full btn-cyber py-3 bg-cyan-600/20 text-cyan-400 font-bold tracking-widest hover:bg-cyan-600/40 border-cyan-500/30 text-xs"
-            >
-              >> SYSTEM START
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    function QubitVisual({ p0, p1, label }) {
-      const z = clamp01(p0) - clamp01(p1); 
-      const topPos = 50 - (z * 40); 
-      return (
-        <div className="flex flex-col items-center gap-1">
-           <div className="qubit-core">
-             <div className="qubit-orbit"></div>
-             <div className="absolute top-2 text-[8px] font-bold text-cyan-500/60">0</div>
-             <div className="absolute bottom-2 text-[8px] font-bold text-purple-500/60">1</div>
-             <div className="probability-node absolute left-1/2 -translate-x-1/2" style={{ top: `${topPos}%`, boxShadow: `0 0 ${10 + Math.abs(z)*10}px ${z > 0 ? '#22d3ee' : '#c084fc'}` }}></div>
-           </div>
-           <div className="font-tech text-[10px] text-white tracking-wider">{label}</div>
-        </div>
-      );
-    }
-
-    function ProbabilityBar({ p0, p1 }) {
-      return (
-        <div className="w-full max-w-[200px] mt-2 bg-slate-900/80 p-1.5 rounded border border-slate-700">
-           <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1">
-             <span className={p0 > p1 ? "text-cyan-400" : ""}>0: {Math.round(p0*100)}%</span>
-             <span className={p1 > p0 ? "text-purple-400" : ""}>1: {Math.round(p1*100)}%</span>
-           </div>
-           <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden flex">
-             <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${p0*100}%` }}></div>
-             <div className="h-full bg-purple-500 transition-all duration-300" style={{ width: `${p1*100}%` }}></div>
-           </div>
-        </div>
-      );
-    }
-
-    // ★ LEVEL 3: 量子コンピュータ体験パネル (スマホ最適化・ストーリー強化)
-    function Level3Panel({ onClear }) {
-      const [rule, setRule] = useState(createRandomRule());
-      const [classicResult, setClassicResult] = useState(null);
-      const [quantumResult, setQuantumResult] = useState(null);
-      const [showAnswer, setShowAnswer] = useState(false);
-      const [isProcessing, setIsProcessing] = useState(false);
-
-      const resetRule = () => {
-        setRule(createRandomRule());
-        setClassicResult(null);
-        setQuantumResult(null);
-        setShowAnswer(false);
-        setIsProcessing(false);
-      };
-
-      const runClassical = () => {
-        if(isProcessing) return;
-        setIsProcessing(true);
-        setClassicResult(null);
-        setTimeout(() => {
-            const kind = rule.kind;
-            setClassicResult({ out0: rule.f0, out1: rule.f1, kind });
-            setShowAnswer(true);
-            setIsProcessing(false);
-        }, 1200);
-      };
-
-      const runQuantum = () => {
-        if(isProcessing) return;
-        setIsProcessing(true);
-        setQuantumResult(null);
-        setTimeout(() => {
-            const res = runQuantumScan(rule);
-            setQuantumResult(res);
-            setShowAnswer(true);
-            if (typeof onClear === "function") onClear();
-            setIsProcessing(false);
-        }, 400); 
-      };
-
-      const humanKind = (k) => k === "constant" ? "いつも同じ" : "バラバラ";
-
-      return (
-        <div className="mt-6 relative">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl opacity-30 blur"></div>
-          <div className="relative bg-slate-900/95 border border-indigo-500/50 rounded-xl p-4 overflow-hidden">
-            
-            {/* Header */}
-            <div className="flex justify-between items-start gap-2 mb-3 border-b border-indigo-500/30 pb-2">
-              <div className="flex-1">
-                <div className="text-[9px] text-indigo-300 font-bold font-mono tracking-widest mb-0.5 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse"></span>
-                  LEVEL 3: 一回チェックの量子コンピュータ
-                </div>
-                <h2 className="text-sm font-bold text-white flex items-center gap-1 font-tech">
-                  量子コンピュータでルールを一発で見抜く
-                </h2>
-                <div className="text-[10px] text-slate-400 mt-1 leading-tight space-y-1">
-                  <p>ここでは、<span className="text-violet-300 font-bold">「世界鍵を流す回線がちゃんとしているか」</span>をテストします。</p>
-                  <p>回線の性格は2パターン。「誰に対しても同じ答え (Constant)」か、「相手によって答えを変える (Balanced)」か。</p>
-                  <p>普通のPCなら 0 と 1 の <span className="font-semibold text-slate-200">2回チェック</span> が必要ですが、<span className="text-white bg-violet-600/30 px-1 rounded font-bold">量子コンピュータなら 1 回のチェック</span>でどちらかを言い当てられます。</p>
-                </div>
-              </div>
-              <div className="text-right shrink-0 ml-1">
-                <div className="text-[9px] text-slate-500 mb-1">正解</div>
-                <div className="text-[10px] font-bold text-indigo-300 mb-1 h-4">{showAnswer ? humanKind(rule.kind) : "???"}</div>
-                <button onClick={resetRule} disabled={isProcessing} className="px-2 py-1 rounded bg-slate-800 text-[9px] text-slate-400 border border-slate-700">
-                  <i className="ph-bold ph-arrows-clockwise"></i> 箱を変える
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {/* Classic */}
-              <div className="bg-slate-950/60 border border-slate-800 rounded p-2 flex flex-col">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-bold text-slate-400">普通のPC</span>
-                  <span className="text-[9px] bg-slate-800 text-slate-500 px-1 rounded">2回必要</span>
-                </div>
-                <div className="flex-1 bg-black/40 rounded p-1.5 mb-2 font-mono text-[9px] text-slate-400 h-12 overflow-hidden">
-                  {classicResult ? (
-                    <div className="animate-fadeIn">
-                      <div>1回目: {classicResult.out0}</div>
-                      <div>2回目: {classicResult.out1}</div>
-                      <div className="text-emerald-400">判定: {humanKind(classicResult.kind)}</div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center opacity-50">{isProcessing ? "計算中..." : "待機中"}</div>
-                  )}
-                </div>
-                <button onClick={runClassical} disabled={isProcessing} className="w-full py-1.5 rounded border border-slate-700 text-slate-400 text-[10px] font-bold hover:bg-slate-800 disabled:opacity-50">
-                  2回テスト
-                </button>
-              </div>
-
-              {/* Quantum */}
-              <div className="bg-indigo-950/20 border border-indigo-500/30 rounded p-2 flex flex-col relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-0.5 bg-indigo-500 shadow-[0_0_5px_#6366f1]"></div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[10px] font-bold text-indigo-200">量子PC</span>
-                  <span className="text-[9px] bg-indigo-900/60 text-indigo-200 px-1 rounded font-bold">1回でOK</span>
-                </div>
-                <div className="flex-1 bg-black/40 rounded p-1.5 mb-2 font-mono text-[9px] text-indigo-200 h-12 overflow-hidden">
-                  {quantumResult ? (
-                    <div className="animate-fadeIn">
-                      <div className="text-indigo-300">✔ スキャン完了</div>
-                      <div className="text-[8px] text-slate-500 scale-90 origin-left">重ね合わせ処理...</div>
-                      <div className="text-cyan-300 font-bold">判定: {humanKind(quantumResult.kindGuess)}</div>
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center opacity-50 text-indigo-500">{isProcessing ? "..." : "READY"}</div>
-                  )}
-                </div>
-                <button onClick={runQuantum} disabled={isProcessing} className="w-full py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold shadow-lg disabled:opacity-50">
-                  ⚡ 1回でスキャン
-                </button>
-              </div>
-            </div>
-            
-            {/* 世界鍵工場での役割 */}
-            <div className="mt-3 p-2 rounded-lg bg-slate-950/80 border border-violet-500/50">
-              <div className="text-[9px] font-mono text-violet-300 mb-1">
-                世界鍵工場での役割
-              </div>
-              <p className="text-[10px] text-slate-200 leading-relaxed">
-                レベル1・2で作った「量子コイン」「ペアのコイン」を組み合わせると、
-                実際にこういう <span className="font-semibold text-cyan-300">1回だけのチェック</span> が作れます。<br/>
-                世界鍵を使う前に、「この回線や装置はちゃんとしているか？」を
-                できるだけ短いチェックで見抜く──その心臓部が、このレベル3です。
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function OSLog({ lastDecision }) {
-      if (!lastDecision) return <div className="h-10 bg-slate-900/50 border-t border-slate-800 p-2 flex items-center justify-center text-slate-600 text-[10px]">[ AI監視中 ] 待機...</div>;
-      const isBlocked = lastDecision.decision === "ブロック";
-      return (
-        <div className={`h-10 border-t px-3 flex items-center gap-2 ${isBlocked ? "bg-red-950/20 border-red-900/50" : "bg-emerald-950/10 border-slate-800"}`}>
-          <div className={isBlocked ? "text-red-500 animate-pulse" : "text-emerald-400"}><i className={isBlocked ? "ph-fill ph-warning-octagon" : "ph-fill ph-check-circle"}></i></div>
-          <div className={`text-[10px] leading-tight ${isBlocked ? "text-red-200" : "text-slate-300"}`}>{lastDecision.msg}</div>
-        </div>
-      );
-    }
-
-    // --- メインアプリ ---
-    function QuantumApp() {
-      const TARGET_LENGTH = 12; 
-      const [showIntro, setShowIntro] = useState(true);
-      const [mode, setMode] = useState("1q");
-      const [osMode, setOsMode] = useState(true);
-      const [s1, setS1] = useState({a:1, b:0}); 
-      const [s2, setS2] = useState({a00:1, a01:0, a10:0, a11:0}); 
-      const [history, setHistory] = useState([]); 
-      const [keyBits, setKeyBits] = useState("");
-      const [isFinished, setIsFinished] = useState(false);
-      const [lastDecision, setLastDecision] = useState(null);
-      const [level3Cleared, setLevel3Cleared] = useState(false);
-
-      const metrics = useMemo(() => mode === "1q" ? computeMetrics("1q", s1, 0, 0) : computeMetrics("2q", s2, 0, 0), [mode, s1, s2]);
-
-      const reset = (newMode = 1) => {
-        if(newMode === 1) setS1({a:1, b:0}); else setS2({a00:1, a01:0, a10:0, a11:0});
-        setLastDecision(null); setKeyBits(""); setIsFinished(false); setHistory([]); setLevel3Cleared(false);
-      };
-
-      const copyToClipboard = (text) => {
-        const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
-        try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(t);
-      };
-
-      const handleBias = () => {
-        if (osMode && metrics.stability > 0.8) {
-           setLastDecision({ decision: "ブロック", msg: "警告：0に偏りすぎです！怪しまれます。", id: Date.now() });
-           setHistory(p => [...p, "偏りすぎ"]); return;
-        }
-        if(mode === "1q") setS1({ a: 0.95, b: 0.31 }); else setS2({ a00:0.9, a01:0.1, a10:0.1, a11:0.4 });
-        setLastDecision({ decision: "許可", msg: "磁石で「0」が出やすくしました。", id: Date.now() });
-      };
-
-      const handleHadamard = () => {
-        if(mode === "1q") setS1({ a: 0.7071, b: 0.7071 }); else setS2({ a00:0.5, a01:0.5, a10:0.5, a11:0.5 }); 
-        setLastDecision({ decision: "許可", msg: "確率を公平(50:50)に混ぜました。", id: Date.now() });
-      };
-
-      const handleEntangle = () => {
-        if (mode === "1q") return;
-        setS2({a00:0.707, a01:0, a10:0, a11:0.707}); 
-        setLastDecision({ decision: "許可", msg: "2つを運命リンクさせました。", id: Date.now() });
-      };
-
-      const handleNoise = () => {
-        if(mode==="1q") setS1(noise1q(s1)); else setS2(noise2q(s2));
-        setLastDecision({ decision: "許可", msg: "揺らして少し混ぜました。", id: Date.now() });
-      };
-
-      const handleMeasure = () => {
-        if (osMode && metrics.stability > 0.92) {
-             setLastDecision({ decision: "ブロック", msg: "バレバレです！もっとランダムにして。", id: Date.now() });
-             setHistory(p => [...p, "予測可能"]); return;
-        }
-        let bit = "";
-        if(mode==="1q") { const r = measure1q(s1); bit = r.outcome.toString(); } 
-        else { const r = measure2q(s2, 1); bit = r.outcome.toString(); }
-        const newKey = keyBits + bit;
-        setKeyBits(newKey);
-        setLastDecision({ decision: "許可", msg: `ストップ！「${bit}」で確定しました。`, id: Date.now() });
-        if (newKey.length >= TARGET_LENGTH) setIsFinished(true);
-      };
-
-      return (
-        <div className="min-h-screen flex justify-center bg-[#020617] pb-24">
-          {showIntro && <IntroModal onClose={() => setShowIntro(false)} />}
+          </button>
           
-          <div className="w-full max-w-md p-4 flex flex-col">
-            {/* Header */}
-            <div className="flex justify-between items-end border-b border-slate-800 pb-3 mb-2">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-widest font-tech flex gap-2 items-center"><i className="ph-fill ph-fingerprint text-cyan-500"></i> KEY FACTORY</h1>
-                <p className="text-[9px] text-cyan-700 font-bold tracking-widest">SECURE PROTOCOL v9.0</p>
-              </div>
-              <div className="text-right">
-                <div className="text-[9px] text-slate-500">PROGRESS</div>
-                <div className="text-lg font-bold text-cyan-400 font-mono leading-none">{keyBits.length}<span className="text-xs text-slate-600">/{TARGET_LENGTH}</span></div>
-              </div>
-            </div>
-            
-            {/* 追加: メイン画面ヘッダー下のストーリー説明 */}
-            <p className="text-[11px] text-slate-400 mb-4 leading-tight">
-              上から順に、<span className="font-semibold text-cyan-200">レベル1・2で鍵の1ビットずつを作り</span>、
-              <span className="font-semibold text-violet-200">レベル3で「世界がちゃんとしているか」を一回でチェック</span>する工場です。
-            </p>
-
-            {/* Mode Tabs */}
-            <div className="flex gap-1 mb-4 bg-slate-900/50 p-1 rounded border border-slate-800">
-              <button onClick={() => { setMode("1q"); reset(1); }} className={`flex-1 py-2 rounded text-[10px] font-bold flex items-center justify-center gap-1 ${mode==="1q" ? "bg-cyan-900/30 text-cyan-300" : "text-slate-500"}`}>
-                <i className="ph-bold ph-circle"></i> Lv.1 コイン
-              </button>
-              <button onClick={() => { setMode("2q"); reset(2); }} className={`flex-1 py-2 rounded text-[10px] font-bold flex items-center justify-center gap-1 ${mode==="2q" ? "bg-purple-900/30 text-purple-300" : "text-slate-500"}`}>
-                <i className="ph-bold ph-circles-three"></i> Lv.2 ペア
-              </button>
-            </div>
-
-            {/* Visualizer */}
-            <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-4 mb-4 flex flex-col items-center relative overflow-hidden min-h-[160px] justify-center">
-               <div className="flex gap-6 z-10 scale-90">
-                 {mode === "1q" ? <QubitVisual p0={metrics.p0} p1={metrics.p1} label="QUBIT" /> : 
-                   <><QubitVisual p0={metrics.p0} p1={metrics.p1} label="A (兄)" /><QubitVisual p0={metrics.p0_2} p1={metrics.p1_2} label="B (弟)" /></>}
+          <div className={`accordion-content ${isOpen ? 'open' : ''}`}>
+            <div className="p-3 sm:p-4 pt-0 border-t border-transparent">
+               <div className="pt-4 border-t border-dashed border-slate-700/50">
+                 {children}
                </div>
-               <ProbabilityBar p0={mode==="1q" ? metrics.p0 : metrics.p0} p1={mode==="1q" ? metrics.p1 : metrics.p1} />
-            </div>
-
-            {/* Controls */}
-            <div className="grid grid-cols-2 gap-3 mb-2">
-              <div className="col-span-1 space-y-2">
-                <div className="text-[9px] font-bold text-cyan-500 border-b border-cyan-900/30 pb-1">① 確率を作る</div>
-                <button onClick={handleHadamard} className="btn-cyber w-full bg-slate-800 p-2 text-left rounded flex items-center gap-2">
-                  <div className="text-cyan-400 text-lg"><i className="ph-bold ph-arrows-clockwise"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">公平に混ぜる</div><div className="text-[8px] text-slate-500">50:50にする</div></div>
-                </button>
-                <button onClick={handleBias} className="btn-cyber w-full bg-slate-800 p-2 text-left rounded flex items-center gap-2">
-                  <div className="text-amber-400 text-lg"><i className="ph-bold ph-magnet"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">0に偏らせる</div><div className="text-[8px] text-slate-500">磁石を使う</div></div>
-                </button>
-                {mode==="2q" && <button onClick={handleEntangle} className="btn-cyber w-full bg-slate-800 p-2 text-left rounded flex items-center gap-2 border-purple-500/30">
-                  <div className="text-purple-400 text-lg"><i className="ph-bold ph-infinity"></i></div>
-                  <div><div className="text-[10px] font-bold text-purple-200">運命をリンク</div><div className="text-[8px] text-slate-500">シンクロさせる</div></div>
-                </button>}
-                <button onClick={handleNoise} className="btn-cyber w-full bg-slate-800 p-2 text-left rounded flex items-center gap-2">
-                  <div className="text-slate-400 text-lg"><i className="ph-bold ph-hand-waving"></i></div>
-                  <div><div className="text-[10px] font-bold text-white">適当に揺らす</div><div className="text-[8px] text-slate-500">ごちゃ混ぜ</div></div>
-                </button>
-              </div>
-              <div className="col-span-1 space-y-2 flex flex-col">
-                <div className="text-[9px] font-bold text-emerald-500 border-b border-emerald-900/30 pb-1">② 決める</div>
-                <button onClick={handleMeasure} className="flex-1 btn-cyber bg-emerald-900/20 border-emerald-500/30 flex flex-col items-center justify-center p-2 rounded-xl active:bg-emerald-800/40">
-                  <i className="ph-bold ph-hand-palm text-3xl text-emerald-500 mb-1"></i>
-                  <span className="text-sm font-bold text-white">ストップ！</span>
-                  <span className="text-[9px] text-emerald-400">数字を確定する</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Key Monitor & Log */}
-            <div className="bg-black border border-slate-800 rounded-t p-2 mb-0">
-               <div className="text-[9px] text-slate-500">GENERATED KEY</div>
-               <div className="text-lg font-mono text-cyan-400 tracking-widest break-all leading-none">{keyBits || "..."}</div>
-            </div>
-            <OSLog lastDecision={lastDecision} />
-
-            {/* Level 3 */}
-            <Level3Panel onClear={() => setLevel3Cleared(true)} />
-
-            {/* OS Badge */}
-            <div className="mt-6 flex justify-between items-center bg-slate-900/50 p-2 rounded border border-slate-800">
-               <div className="text-[9px] text-slate-500 flex items-center gap-1"><i className="ph-fill ph-robot"></i> AI監視システム</div>
-               <button onClick={() => setOsMode(!osMode)} className={`text-[9px] px-2 py-0.5 rounded border ${osMode ? "text-emerald-500 border-emerald-900" : "text-red-500 border-red-900"}`}>
-                 {osMode ? "ON" : "OFF"}
-               </button>
             </div>
           </div>
+        </div>
+      );
+    };
 
-          {/* Result Overlay */}
-          {isFinished && (
-            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-6 animate-fadeIn">
-               <div className="w-full max-w-sm border border-emerald-500/50 p-6 bg-slate-900 rounded-xl relative overflow-hidden">
-                 <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
-                 <div className="text-center mb-4">
-                   <div className="text-emerald-500 text-3xl mb-1"><i className="ph-fill ph-certificate"></i></div>
-                   <h2 className="text-xl font-bold text-white">MISSION COMPLETE</h2>
-                 </div>
-                 <div className="bg-black p-3 rounded mb-4 border border-slate-800 text-center">
-                   <div className="text-[9px] text-slate-500 mb-1">FINAL KEY</div>
-                   <div className="text-xl font-mono text-cyan-300 tracking-widest select-all">{keyBits}</div>
-                 </div>
-                 <div className={`p-3 mb-4 rounded text-xs border ${history.length === 0 ? "bg-emerald-950/30 border-emerald-500/30 text-emerald-200" : "bg-amber-950/30 border-amber-500/30 text-amber-200"}`}>
-                    <div className="font-bold mb-1">{history.length === 0 ? "評価: S (完璧)" : `評価: B (警告${history.length}回)`}</div>
-                    <div>{history.length === 0 ? "AIの監視を完全にかいくぐりました。" : "少し怪しい動きがありましたが成功です。"}</div>
-                    {level3Cleared && (
-                      <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-2">
-                        <span className="text-lg">🏆</span>
-                        <div>
-                          <div className="text-[9px] text-violet-300 font-bold uppercase">Award</div>
-                          <div className="text-[10px] font-bold text-white">量子スキャン体験済</div>
-                        </div>
-                      </div>
-                    )}
-                 </div>
-                 <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => reset(1)} className="btn-cyber py-2 bg-slate-800 text-xs font-bold text-slate-300 rounded">破棄</button>
-                    <button onClick={() => copyToClipboard(keyBits)} className="btn-cyber py-2 bg-emerald-600 text-xs font-bold text-white border-emerald-500 rounded">コピーして終了</button>
-                 </div>
-               </div>
+    // --- What is Finance ADIC (Definition) ---
+    const WhatIsAdic = () => (
+      <section className="max-w-4xl mx-auto px-3 sm:px-4 mt-6 mb-4">
+        <div className="p-3 sm:p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-xl shadow-sm">
+          <h2 className="text-xs sm:text-sm font-bold text-indigo-200 mb-2 flex items-center gap-2">
+            <div className="w-1 h-4 sm:h-5 bg-indigo-500 rounded-full"></div>
+            Finance ADIC とは？
+          </h2>
+          <p className="text-[10px] sm:text-xs text-slate-300 leading-relaxed">
+            計算ロジック（企業秘密）を秘匿したまま、その実行プロセスを<strong>「再計算可能な台帳（Ledger）」</strong>として記録・保存する技術規格です。<br className="hidden sm:block" />
+            この台帳さえあれば、ソースコードを開示することなく、第三者がいつでも「計算の正当性」だけを100%証明できるようになります。
+          </p>
+        </div>
+      </section>
+    );
+
+    // --- Core Rules (なぜ見えるか) ---
+    const CoreRules = () => (
+      <div className="glass-panel p-3 mb-4 rounded-lg border-l-4 border-emerald-500">
+        <h3 className="text-xs font-bold text-emerald-300 mb-1 flex items-center gap-1.5">
+          <ShieldCheck size={14} />
+          なぜ「台帳だけで証明」になる？
+        </h3>
+        <div className="text-[10px] sm:text-xs text-slate-300 space-y-1">
+          <p>このシステムは<strong className="text-white">3つの鉄則（仕様）</strong>で定義されます。</p>
+          <ol className="list-decimal list-inside space-y-0.5 ml-1 text-slate-400">
+            <li>出力に効く計算は全て<span className="text-emerald-400">「記録機能つき専用ツール」</span>で行う</li>
+            <li>そのツールは使った数字を<span className="text-emerald-400">必ず台帳に残す</span></li>
+            <li>検証は<span className="text-emerald-400">台帳だけ</span>を見て再計算・照合する</li>
+          </ol>
+          <p className="mt-1 pt-1 border-t border-slate-700/50 text-[9px] sm:text-[10px] text-slate-500">
+            → このルール下では「台帳＝計算の全貌」であることが保証されます。
+          </p>
+        </div>
+      </div>
+    );
+
+    // --- Target Audience Section ---
+    const TargetAudienceSection = () => (
+      <section className="bg-gradient-to-b from-slate-900 to-slate-950 border-b border-slate-800 pb-6 pt-6 px-3">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-xs font-bold mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+                For Financial Engineers
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white mb-2 leading-tight">
+                Finance ADIC<br/>
+                <span className="text-slate-400 text-sm sm:text-lg font-normal">
+                  証跡つきブラックボックス
+                </span>
+              </h1>
+              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed mb-4">
+                金融商品の<strong>モデル設計・計算・監査</strong>実務家向けデモ。<br/>
+                ロジック（秘密）は隠し、出力の正当性だけを証明します。
+              </p>
             </div>
-          )}
+            <div className="flex-1 w-full bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 shadow-lg">
+              <h3 className="text-xs sm:text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <Activity size={14} className="text-indigo-400" />
+                対象業務
+              </h3>
+              <ul className="space-y-1.5">
+                {[
+                  "VaR / ES / XVA 等のリスク計算",
+                  "プライシングモデル構築・検証",
+                  "MRM (モデルリスク管理) エビデンス",
+                  "市場データ統合の誤差管理",
+                  "社内審査・監査の証跡提出"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[11px] sm:text-xs text-slate-300">
+                    <CheckSquare size={12} className="mt-0.5 text-emerald-500 shrink-0" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+
+    // --- Simple Logic Demo (With Deep Dive Integrated) ---
+    const SimpleLogicDemo = () => {
+      const [isOpen, setIsOpen] = useState(false);
+
+      return (
+        <section className="mx-1 sm:mx-0 mt-2">
+          
+          <CoreRules />
+
+          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-3 sm:p-4 shadow-inner relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-5">
+               <Calculator size={80} />
+            </div>
+            
+            <div className="relative z-10">
+              <h2 className="text-sm sm:text-base font-bold text-slate-100 mb-2 flex items-center gap-2">
+                <span className="w-1 h-4 bg-amber-500 rounded-full"></span>
+                ミニ台帳で体験
+              </h2>
+              <p className="text-[11px] sm:text-xs text-slate-400 mb-3 max-w-2xl leading-relaxed">
+                VaRも分解すれば四則演算。まずは<strong>「超単純リスク計算」</strong>で仕組みを直感理解。
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-4 bg-slate-950/50 rounded-xl p-3 border border-slate-800/50">
+                {/* Model Definition */}
+                <div>
+                  <h3 className="text-[10px] sm:text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <div className="w-4 h-4 bg-blue-500/20 text-blue-400 rounded flex items-center justify-center text-[9px]">A</div>
+                    モデル
+                  </h3>
+                  <div className="text-[10px] sm:text-xs text-slate-400 space-y-0.5 font-mono bg-slate-900 p-2 rounded border border-slate-800">
+                    <div>損失L = 残高P × リスク率r</div>
+                    <div className="mt-1 text-slate-300">例: P=1,000万, r=5%(1/20)</div>
+                    <div className="text-emerald-400 font-bold">→ L = 50万円</div>
+                  </div>
+                </div>
+
+                {/* Ledger View */}
+                <div>
+                  <h3 className="text-[10px] sm:text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                    <div className="w-4 h-4 bg-emerald-500/20 text-emerald-400 rounded flex items-center justify-center text-[9px]">B</div>
+                    ADIC 台帳
+                  </h3>
+                  <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono bg-slate-900 rounded border border-slate-800 overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-800/50 text-slate-500">
+                        <tr><th className="p-1 font-normal">Step</th><th className="p-1 font-normal">Op</th><th className="p-1 font-normal text-right">Rational</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        <tr>
+                          <td className="p-1">1</td>
+                          <td className="p-1 text-sky-400">RATE(r=0.05)</td>
+                          <td className="p-1 text-right text-emerald-400">1/20</td>
+                        </tr>
+                        <tr>
+                          <td className="p-1">2</td>
+                          <td className="p-1 text-sky-400">LOSS(P*r)</td>
+                          <td className="p-1 text-right text-emerald-400">500,000/1</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2">
+                {/* Accordion: Why Safe? */}
+                <div>
+                  <button 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-800 px-3 py-2 rounded-lg border border-slate-700/50 w-full text-left transition-colors"
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    なぜこれで「穴が残り得ない」と言える？（解説）
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="mt-2 p-3 bg-slate-800/30 rounded-lg border border-slate-700/30 text-[10px] sm:text-xs text-slate-300 leading-relaxed animate-in fade-in slide-in-from-top-1">
+                      <p className="mb-2">
+                          ここでは P=1,000万・r=5%(=1/20) だけを使う<strong>超単純モデル</strong>で、
+                          「正しい台帳」と「壊れた台帳」がどう見えるかを確認します。
+                      </p>
+
+                      <ol className="list-decimal list-inside space-y-2 ml-1 text-slate-400 mb-4">
+                          <li>
+                          <span className="font-bold text-emerald-300">正常ケース</span><br />
+                          Step1: r = <span className="font-mono text-emerald-400">1/20</span><br />
+                          Step2: L = P×r = 10,000,000×1/20 ={" "}
+                          <span className="font-mono text-emerald-400">500,000/1</span><br />
+                          <span className="text-slate-500">検証者は台帳どおりに電卓で再計算するだけで、一致を確認できます。</span>
+                          </li>
+
+                          <li>
+                          <span className="font-bold text-rose-300">係数をいじった穴（改ざん）</span><br />
+                          誰かが r 行だけ <span className="font-mono">1/25</span> に書き換え、
+                          L 行は 500,000/1 のまま提出したとします。<br />
+                          検証者は 10,000,000×1/25=400,000 を再計算 →{" "}
+                          <span className="font-mono text-rose-400">台帳の 500,000/1 と絶対に一致しません</span>。<br />
+                          <strong>台帳だけ</strong>を見ていても、この矛盾は必ず露出します。
+                          </li>
+
+                          <li>
+                          <span className="font-bold text-rose-300">ステップ抜けの穴</span><br />
+                          Step2（LOSS 行）を丸ごと削って台帳を出した場合、L がいくつで算出されたかを示す行が一切ありません。<br />
+                          このルールでは「台帳に存在しない値は、最終出力として認めない」ので、
+                          <span className="text-rose-300"> L をごまかして提出すること自体ができません</span>。
+                          </li>
+                      </ol>
+
+                      <div className="mt-3 pt-3 border-t border-slate-700/30 text-[9px] sm:text-[10px] text-slate-400 leading-relaxed bg-indigo-900/10 p-3 rounded-lg border border-indigo-500/10">
+                          <strong className="text-indigo-300 flex items-center gap-1.5 mb-1">
+                             <Sigma size={12} /> Why This Works? (技術的背景)
+                          </strong>
+                          <div className="mb-2">
+                              従来のシステムでは「浮動小数点の誤差（計算するPCによって微細なズレが出る）」という壁があり、数年後の完全な再計算は不可能でした。<br/>
+                              Finance ADIC は、全ての計算を<strong>「有理数（整数比）」</strong>で固定する独自技術により、この壁を突破。いつどこで誰が計算しても、1ビットもズレない完全な再現性を保証します。
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                              <span className="text-slate-500 self-center sm:self-auto">Deep Dive (Theory):</span>
+                              <a href="https://ghostdrifttheory.github.io/prime-counter-demo-en/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1">
+                                  素数計算OS <ExternalLink size={8} />
+                              </a>
+                              <span className="hidden sm:inline text-slate-600">|</span>
+                              <a href="https://ghostdrifttheory.github.io/Prime-Calculation-OS-Mathematical-Lab/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline flex items-center gap-1">
+                                  数理ラボ <ExternalLink size={8} />
+                              </a>
+                          </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    // --- Story Guide (Condensed) ---
+    const StoryGuide = ({ appState, hasResult }) => {
+      let title = "";
+      let desc = "";
+      let color = "border-slate-800 bg-slate-900/30";
+      let icon = <Activity className="text-slate-500" />;
+
+      if (appState === 'idle' && !hasResult) {
+         title = "日常: モデル実行 & 証跡保存";
+         desc = "日々のVaR計算。ADICがプロセスを「台帳」として自動保存。";
+         color = "border-indigo-500/30 bg-indigo-900/10";
+         icon = <div className="p-1.5 bg-indigo-500/20 rounded-full text-indigo-400"><FileArchive size={14} /></div>;
+      } else if (hasResult && (appState === 'ready' || appState === 'idle')) {
+         title = "数年後: 監査・有事";
+         desc = "「3年前の計算根拠は？」モデルが変わっていても台帳は不変。「Verify」で証明。";
+         color = "border-sky-500/30 bg-sky-900/10";
+         icon = <div className="p-1.5 bg-sky-500/20 rounded-full text-sky-400"><Clock size={14} /></div>;
+      } else if (appState === 'verifying') {
+         title = "検証: ブラックボックス証明";
+         desc = "監査人のPCで台帳のみを再計算中。元モデル無しで正当性をチェック。";
+         color = "border-amber-500/30 bg-amber-900/10";
+         icon = <div className="p-1.5 bg-amber-500/20 rounded-full text-amber-400"><RefreshCw size={14} className="animate-spin" /></div>;
+      } else if (appState === 'verified') {
+         title = "完了: 完全な証明";
+         desc = "「当時の数字は手順通り算出された」と証明。説明責任を完遂。";
+         color = "border-emerald-500/30 bg-emerald-900/10";
+         icon = <div className="p-1.5 bg-emerald-500/20 rounded-full text-emerald-400"><CheckCircle2 size={14} /></div>;
+      }
+
+      return (
+        <div className={`mx-2 sm:mx-0 mt-4 mb-4 rounded-lg border ${color} p-3 transition-all duration-500 shadow-md`}>
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 mt-0.5">{icon}</div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-slate-200">{title}</h3>
+              <p className="text-[10px] sm:text-xs text-slate-400 leading-snug mt-0.5">{desc}</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // --- Main Demo Component ---
+    const MainDemo = ({ inputs, setInputs, appState, runModel, ledger, result, verifyLedger, verifyProgress }) => {
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setInputs(prev => ({ ...prev, [name]: value }));
+      };
+      const isInputValid = inputs.portfolio > 0 && inputs.days > 0 && inputs.alpha > 0.5;
+
+      return (
+        <>
+        <StoryGuide appState={appState} hasResult={!!result} />
+        
+        <div className="grid lg:grid-cols-12 gap-4 sm:gap-6">
+          {/* Input Column */}
+          <div className="lg:col-span-5 space-y-6">
+            <section className="glass-panel rounded-xl overflow-hidden shadow-xl">
+              <div className="px-4 py-3 bg-slate-900/50 border-b border-slate-800 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-sky-400" />
+                <h2 className="text-sm font-bold text-sky-100">Model Input</h2>
+              </div>
+              
+              <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Portfolio</label>
+                  <div className="relative">
+                      <input 
+                      type="number" 
+                      name="portfolio"
+                      value={inputs.portfolio}
+                      onChange={handleInputChange}
+                      className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white focus:ring-1 focus:ring-indigo-500 outline-none transition font-mono text-sm"
+                    />
+                    <div className="absolute right-3 top-2 text-xs text-slate-500 pointer-events-none">$</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Vol</label>
+                    <div className="relative">
+                        <input 
+                        type="number" 
+                        name="volPct"
+                        value={inputs.volPct}
+                        onChange={handleInputChange}
+                        className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white focus:ring-1 focus:ring-indigo-500 outline-none font-mono text-sm"
+                        />
+                        <div className="absolute right-3 top-2 text-xs text-slate-500 pointer-events-none">%</div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Days</label>
+                    <div className="relative">
+                        <input 
+                        type="number" 
+                        name="days"
+                        value={inputs.days}
+                        onChange={handleInputChange}
+                        className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-white focus:ring-1 focus:ring-indigo-500 outline-none font-mono text-sm"
+                        />
+                          <div className="absolute right-3 top-2 text-xs text-slate-500 pointer-events-none">Days</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Conf (α)</label>
+                  <div className="flex items-center gap-3">
+                      <input 
+                          type="range" 
+                          min="0.90" max="0.999" step="0.001"
+                          name="alpha"
+                          value={inputs.alpha}
+                          onChange={handleInputChange}
+                          className="flex-1 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <span className="w-16 text-right text-sm font-mono text-indigo-400">{(inputs.alpha*100).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 py-4 bg-slate-900/30 border-t border-slate-800">
+                  <button
+                  onClick={runModel}
+                  disabled={!isInputValid || appState === 'calculating'}
+                  className={`
+                    w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]
+                    ${isInputValid 
+                      ? 'bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white shadow-sky-900/20' 
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed'}
+                  `}
+                >
+                  {appState === 'calculating' ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-4 h-4" />
+                      Run Blackbox
+                    </>
+                  )}
+                </button>
+                <p className="text-[10px] text-slate-500 text-center mt-2">
+                    ※ 入力値はブラックボックスへ。台帳のみ生成。
+                </p>
+              </div>
+            </section>
+          </div>
+
+          {/* Output Column */}
+          <div className="lg:col-span-7 space-y-6">
+            <section className="glass-panel rounded-xl overflow-hidden min-h-[350px] sm:min-h-[400px] flex flex-col shadow-xl relative">
+              
+              {appState === 'idle' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-950/60 backdrop-blur-[2px] z-10 p-6 text-center">
+                    <Cpu size={48} className="mb-4 opacity-30" />
+                    <h3 className="text-sm font-bold text-slate-300 mb-2">Awaiting Input</h3>
+                    <p className="text-xs">左パネルで実行してください。</p>
+                  </div>
+              )}
+
+              <div className="px-4 sm:px-5 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-emerald-400" />
+                  <h2 className="text-sm font-bold text-emerald-100">Output & Ledger</h2>
+                </div>
+                
+                {result && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 hidden sm:inline">Status:</span>
+                    {appState === 'verified' ? (
+                        <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px] px-2 py-0.5 bg-emerald-900/30 rounded border border-emerald-500/30 uppercase tracking-wider">
+                            <ShieldCheck size={12} /> Verified
+                        </span>
+                    ) : appState === 'verifying' ? (
+                        <span className="text-amber-400 font-bold text-[10px] uppercase tracking-wider animate-pulse">
+                            Verifying...
+                        </span>
+                    ) : (
+                        <span className="text-slate-500 text-[10px] uppercase tracking-wider">
+                            Unverified
+                        </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 p-3 sm:p-5 space-y-4 sm:space-y-6">
+                  {result ? (
+                      <>
+                          <div className="bg-slate-800/30 rounded-lg p-3 sm:p-4 border border-slate-700/50">
+                              <h3 className="text-[10px] font-bold text-slate-400 uppercase mb-1 sm:mb-2 tracking-wider">Est. VaR (99%)</h3>
+                              <div className="flex items-baseline gap-2">
+                                  <div className="text-2xl sm:text-3xl font-mono font-bold text-white tracking-tight">
+                                      {result.varValue.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+                                  </div>
+                              </div>
+                          </div>
+
+                          <DistributionChart varValue={result.varValue} portfolio={inputs.portfolio} alpha={inputs.alpha} />
+
+                          <div className="border-t border-slate-800 pt-4">
+                              <div className="flex items-center justify-between mb-2">
+                                  <h3 className="text-xs font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wide">
+                                    <FileSpreadsheet size={14} />
+                                    ADIC Ledger
+                                  </h3>
+                                  <div className="text-[9px] sm:text-[10px] text-slate-500">
+                                    外部提示用「証拠」
+                                  </div>
+                              </div>
+                              
+                              <div className="bg-slate-950/50 rounded border border-slate-800 h-40 sm:h-48 overflow-y-auto p-1 scrollbar-thin">
+                                  {ledger.map((item, idx) => {
+                                      let rowState = 'idle';
+                                      if (appState === 'verifying') {
+                                          if (idx < verifyProgress) rowState = 'ok';
+                                          else if (idx === verifyProgress) rowState = 'checking';
+                                      } else if (appState === 'verified') {
+                                          rowState = 'ok';
+                                      }
+                                      return <LedgerRow key={item.id} item={item} verifyState={rowState} />;
+                                  })}
+                              </div>
+                          </div>
+
+                          <div>
+                            {appState === 'ready' && <VerifySimulationExplainer />}
+                            <button
+                                onClick={verifyLedger}
+                                disabled={appState !== 'ready' && appState !== 'verified'}
+                                className={`
+                                    w-full py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xl
+                                    ${appState === 'verified' 
+                                        ? 'bg-emerald-500/10 border border-emerald-500/50 text-emerald-400 cursor-default'
+                                        : appState === 'verifying'
+                                        ? 'bg-amber-500/10 border border-amber-500/50 text-amber-400 cursor-wait'
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/30'
+                                    }
+                                `}
+                            >
+                                {appState === 'verified' ? (
+                                    <> <CheckCircle2 size={16} /> Audit Passed </>
+                                ) : (
+                                    <> <ShieldCheck size={16} /> Verify Ledger </>
+                                )}
+                            </button>
+                          </div>
+                      </>
+                  ) : null}
+              </div>
+            </section>
+            
+            {result && <BusinessValueCard />}
+            
+          </div>
+        </div>
+        </>
+      );
+    };
+
+    // --- Integration Blueprint ---
+    const IntegrationBlueprint = () => (
+      <div className="pt-2 pb-4">
+        <div className="mb-4">
+          <h3 className="text-sm font-bold text-slate-200 mb-1 flex items-center gap-2">
+            <span className="w-1 h-4 bg-emerald-500 rounded-full"></span>
+            社内モデル実装Blueprint
+          </h3>
+          <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed">
+            単純なVaRだけでなく、複雑な社内エンジンにも<strong>外側から被せる（Wrap）</strong>だけで適用可能。
+          </p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-3 mb-4">
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+              <div className="mb-2 text-slate-500"><Layers size={18} /></div>
+              <h4 className="text-xs font-bold text-slate-200 mb-1">1. 計算ソフトに記録係を外付け</h4>
+              <p className="text-[10px] text-slate-500 leading-snug">
+                今の計算ソフト（Excelやプログラム）は改造せず、計算のたびに「入力と結果」を自動でメモする仕組みを外側に付けます。
+              </p>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+              <div className="mb-2 text-slate-500"><FileCode size={18} /></div>
+              <h4 className="text-xs font-bold text-slate-200 mb-1">2. 台帳出力</h4>
+              <p className="text-[10px] text-slate-500 leading-snug">
+                計算過程を「操作ID・入力・結果」で記録し台帳自動生成。
+              </p>
+          </div>
+
+          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3">
+              <div className="mb-2 text-slate-500"><RefreshCw size={18} /></div>
+              <h4 className="text-xs font-bold text-slate-200 mb-1">3. Verify関数</h4>
+              <p className="text-[10px] text-slate-500 leading-snug">
+                台帳のみで再計算する軽量スクリプトを用意。これで検証完成。
+              </p>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+            <div className="text-center sm:text-left">
+              <div className="text-[10px] sm:text-xs font-bold text-slate-300">
+                  実装イメージ相談
+              </div>
+              <div className="text-[9px] sm:text-[10px] text-slate-500">
+                  「演算ステップ表（擬似コード）」からテンプレート案作成可。※コード送付不要
+              </div>
+            </div>
+            <button className="whitespace-nowrap px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[10px] sm:text-xs font-bold rounded-lg transition-colors flex items-center gap-2 cursor-pointer">
+              <Send size={12} className="text-slate-400" />
+              テンプレート相談
+            </button>
+        </div>
+      </div>
+    );
+
+    // ------------------------------------------
+    // Main App
+    // ------------------------------------------
+    function App() {
+      const [inputs, setInputs] = useState({
+        portfolio: 1000000,
+        volPct: 20,
+        days: 10,
+        alpha: 0.99
+      });
+      
+      const [appState, setAppState] = useState('idle');
+      const [ledger, setLedger] = useState([]);
+      const [result, setResult] = useState(null);
+      const [verifyProgress, setVerifyProgress] = useState(-1);
+
+      const runModel = () => {
+        setAppState('calculating');
+        setTimeout(() => {
+          const P = Number(inputs.portfolio);
+          const sigmaPct = Number(inputs.volPct);
+          const D = Number(inputs.days);
+          const a = Number(inputs.alpha);
+
+          const steps = [];
+          const pushOp = (code, opLabel, inp, floatRes) => {
+            const r = outwardRational(floatRes);
+            const tol = 1e-7; 
+            steps.push({
+              id: steps.length + 1,
+              code,
+              op: opLabel,
+              inputs: inp,
+              floatResult: floatRes,
+              rationalStr: `${r.p}/${r.q}`,
+              rationalValue: r.value,
+              absError: r.absError,
+              ok: r.absError <= tol,
+            });
+            return r;
+          };
+
+          const z = zForAlpha(a);
+          pushOp("OP_Z", "Z_Score", { alpha: a }, z);
+          const vol = sigmaPct / 100.0;
+          pushOp("OP_VOL", "Vol_Scale", { volPct: sigmaPct }, vol);
+          const sqrtTerm = Math.sqrt(D / 252.0);
+          pushOp("OP_SQRT", "Time_Scale", { days: D }, sqrtTerm);
+          const base = P * vol * sqrtTerm;
+          pushOp("OP_BASE", "Base_Risk", { P, vol, sqrtTerm }, base);
+          const varValue = base * z;
+          const rVaR = pushOp("OP_VAR", "VaR_Calc", { base, z }, varValue);
+
+          setLedger(steps);
+          setResult({
+            varValue,
+            varRational: rVaR,
+            z,
+            vol,
+            sqrtTerm
+          });
+          setAppState('ready');
+        }, 800); 
+      };
+
+      const verifyLedger = () => {
+        if (appState !== 'ready' && appState !== 'verified') return;
+        setAppState('verifying');
+        setVerifyProgress(-1);
+
+        const context = {};
+        let allOk = true;
+        let currentIdx = 0;
+
+        const interval = setInterval(() => {
+          if (currentIdx < ledger.length) {
+              const entry = ledger[currentIdx];
+              let recomputedValue = 0;
+
+              switch (entry.code) {
+                  case "OP_Z":
+                      recomputedValue = zForAlpha(entry.inputs.alpha);
+                      context.z = recomputedValue;
+                      break;
+                  case "OP_VOL":
+                      recomputedValue = entry.inputs.volPct / 100.0;
+                      context.vol = recomputedValue;
+                      break;
+                  case "OP_SQRT":
+                      recomputedValue = Math.sqrt(entry.inputs.days / 252.0);
+                      context.sqrtTerm = recomputedValue;
+                      break;
+                  case "OP_BASE":
+                      recomputedValue = entry.inputs.P * context.vol * context.sqrtTerm;
+                      context.base = recomputedValue;
+                      break;
+                  case "OP_VAR":
+                      recomputedValue = context.base * context.z;
+                      break;
+                  default:
+                      recomputedValue = entry.rationalValue; 
+              }
+
+              const diff = Math.abs(recomputedValue - entry.rationalValue);
+              const tol = 1e-7;
+              if (diff > tol) allOk = false;
+          }
+
+          setVerifyProgress(currentIdx);
+          currentIdx++;
+
+          if (currentIdx >= ledger.length) {
+            clearInterval(interval);
+            setTimeout(() => {
+                setAppState('verified');
+            }, 500);
+          }
+        }, 200);
+      };
+
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans pb-10">
+          
+          {/* Header */}
+          <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-20">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
+                  <ShieldCheck className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-slate-100 tracking-tight">
+                    Finance <span className="text-indigo-400">ADIC</span>
+                  </h1>
+                </div>
+              </div>
+              <button className="text-slate-400 hover:text-white transition p-2 bg-slate-800/50 rounded-full" onClick={() => window.location.reload()}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </header>
+
+          {/* Target Audience Section */}
+          <TargetAudienceSection />
+          
+          {/* What is ADIC Section */}
+          <WhatIsAdic />
+
+          <main className="max-w-4xl mx-auto px-4 pb-6 mt-4">
+            
+            {/* Accordion 1: Step 0 Principle */}
+            <AccordionSection title="原理: なぜ台帳だけで検証できる？（ミニ台帳）" icon={Calculator}>
+               <SimpleLogicDemo />
+            </AccordionSection>
+
+            {/* Accordion 2: Main Demo (Highlight) */}
+            <AccordionSection title="【実演デモ】日常業務: モデル実行 & 証跡保存" isMain={true} icon={PlayCircle} defaultOpen={false}>
+               <MainDemo 
+                 inputs={inputs} 
+                 setInputs={setInputs} 
+                 appState={appState} 
+                 runModel={runModel} 
+                 ledger={ledger} 
+                 result={result} 
+                 verifyLedger={verifyLedger}
+                 verifyProgress={verifyProgress}
+               />
+            </AccordionSection>
+
+            {/* Accordion 3: Blueprint */}
+            <AccordionSection title="実装: 社内モデルへの適用ブループリント" icon={Settings2}>
+               <IntegrationBlueprint />
+            </AccordionSection>
+
+          </main>
         </div>
       );
     }
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<QuantumApp />);
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
